@@ -12,7 +12,19 @@
         <p>Unlock access to the game for just <strong>$1.00</strong>.</p>
         
         <!-- Replace with your actual Stripe Payment Link -->
-        <a href="YOUR_STRIPE_PAYMENT_LINK_URL" class="btn">Pay $1.00 to Play</a>
+<script async
+  src="https://js.stripe.com/v3/buy-button.js">
+</script>
+
+<stripe-buy-button
+  buy-button-id="buy_btn_1UITUlLCcvc2qiulpSxwQYIB"
+  publishable-key="pk_live_51UIT0sLCcvc2qiulOreqiRcL78bdVWq6oNmJTnScSKjyuL7FnmB02heVtQpaKclNZ60PQn8JMI2jaORn4S1M3ueo00wzynb5oI"
+>
+</stripe-buy-button>
+
+
+        
+       // <a href="YOUR_STRIPE_PAYMENT_LINK_URL" class="btn">Pay $1.00 to Play</a>
     </div>
 </body>
 </html>
