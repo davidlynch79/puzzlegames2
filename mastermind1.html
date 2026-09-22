@@ -10,21 +10,28 @@
     <title>Mastermind Grand Ultimate</title>
     <!-- PAYMENT VERIFICATION PROTECTION -->
 
+
+
     <script>
     async function verifyAccess() {
         try {
             const response = await fetch('/api/verify-auth');
             const data = await response.json();
+            console.log("Mastermind Auth Response:", data);
+            
             if (!data.success) {
+                console.error("Access denied by server.");
                 window.location.href = 'index.html';
+            } else {
+                console.log("Access granted!");
             }
         } catch (err) {
+            console.error("Fetch error:", err);
             window.location.href = 'index.html';
         }
     }
     verifyAccess();
 </script>
-
 
 
 
