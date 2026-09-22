@@ -1,17 +1,26 @@
+
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Arcade - Pay to Play</title>
+    <title>Puzzle Arcade - All Access</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
-        <h1>🧩 Mastermind Ultimate</h1>
-        <p>Unlock access to the game for just <strong>$1.00</strong>.</p>
+        <h1>🧩 Puzzle Arcade All-Access</h1>
+        <p>Subscribe for unlimited access to all arcade games!</p>
         
-        <!-- Replace with your actual Stripe Payment Link -->
+        <!-- Game Selection Preview Links (Will redirect if not subscribed) -->
+        <div class="game-links">
+            <a href="mastermind1.html" class="game-btn">Play Mastermind</a>
+            <a href="hexxagon.html" class="game-btn">Play Hexxagon</a>
+
+
+
 <script async
   src="https://js.stripe.com/v3/buy-button.js">
 </script>
@@ -23,8 +32,16 @@
 </stripe-buy-button>
 
 
-        
-       
+
+
+
+        </div>
+
+        <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #334155;">
+
+        <h3>Unlock Everything</h3>
+        <!-- Replace with your actual Stripe Subscription Payment Link URL -->
+        <a href="YOUR_STRIPE_SUBSCRIPTION_LINK_URL" class="btn">Subscribe Now ($5/mo)</a>
     </div>
 </body>
 </html>

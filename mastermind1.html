@@ -8,39 +8,36 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
     <title>Mastermind Grand Ultimate</title>
-
+    <!-- PAYMENT VERIFICATION PROTECTION -->
 
 
 <script>
-    async function verifyAccess() {
-        const urlParams = new URLSearchParams(window.location.search);
-        const sessionId = urlParams.get('session_id');
+        async function verifyAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
 
-        // If there is no session ID at all, or if someone tried to use "unlocked=true", block them immediately
-        if (!sessionId || urlParams.get('unlocked') === 'true') {
-            window.location.href = 'index.html';
-            return;
-        }
+            if (!sessionId || urlParams.get('unlocked') === 'true') {
+                window.location.href = 'index.html';
+                return;
+            }
 
-        try {
-            const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
-            const data = await response.json();
+            try {
+                const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+                const data = await response.json();
 
-            if (!data.success) {
+                if (!data.success) {
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
                 window.location.href = 'index.html';
             }
-        } catch (err) {
-            window.location.href = 'index.html';
         }
-    }
-    verifyAccess();
-</script>
+        verifyAccess();
+    </script>
 
 
 
-
-    
-  /*  <!-- PAYMENT VERIFICATION PROTECTION -->
+/*
     <script>
         const urlParams = new URLSearchParams(window.location.search);
         // Checks if Stripe session parameter or manual unlock token exists
@@ -51,9 +48,10 @@
         }
     </script>
 
-    */
+*/
 
-    
+
+
     <style>
         :root {
             --bg: #0f172a;

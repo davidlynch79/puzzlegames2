@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Hexxagon Fair-Symmetry Pro</title>
+<script>
+        async function verifyAccess() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const sessionId = urlParams.get('session_id');
+
+            if (!sessionId || urlParams.get('unlocked') === 'true') {
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
+                const data = await response.json();
+
+                if (!data.success) {
+                    window.location.href = 'index.html';
+                }
+            } catch (err) {
+                window.location.href = 'index.html';
+            }
+        }
+        verifyAccess();
+    </script>
+    <style>
+        :root {
+            --bg-color: #0f0f13;
+            --panel-color: #1a1a24;
+            --panel-border: #29293d;
+            --text-color: #f5f5f7;
+            --p1-color: #ff3344;
+            --p2-color: #33ccff;
+            --p3-color: #ffcc00;
+        }
+
+        body {
+            margin: 0;
+            padding: 10px;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        .game-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: var(--panel-color);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            max-width: 100%;
+            border: 1px solid var(--panel-border);
+            box-sizing: border-box;
+        }
+
+        .setup-screen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 100%;
+            max-width: 540px;
+            text-align: center;
+        }
+
+        .setup-group {
+            margin: 10px 0;
+            width: 100%;
+        }
+
+        .setup-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            letter-spacing: 1px;
+            color: #8a8a9e;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            width: 100%;
+        }
+
+        .map-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid var(--panel-border);
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        button {
+            background: #232331;
+            color: white;
+            border: 1px solid #36364e;
+            padding: 10px 14px;
+            font-size: 0.9rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s ease-in-out;
+            flex-grow: 1;
+        }
+
+        button:hover {
+            background: #2f2f42;
+            border-color: #4b4b6c;
+        }
+
+        button.active {
+            background: #5850ec;
+            border-color: #6875f5;
+            box-shadow: 0 0 12px rgba(88, 80, 236, 0.4);
+        }
+
+        button:disabled {
+            background: #15151c;
+            color: #4a4a5a;
+            border-color: #22222e;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        button.btn-start {
+            background: #047857;
+            border-color: #065f46;
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-top: 12px;
+            padding: 12px;
+            width: 100%;
+        }
+
+        button.btn-start:hover:not(:disabled) {
+            background: #059669;
+        }
+
+        h1 { margin: 0 0 5px 0; font-size: 1.8rem; letter-spacing: 3px; text-transform: uppercase; color: #fff;}
+        .hidden { display: none !important; }
+
+        .scoreboard {
+            display: flex;
+            gap: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            background: rgba(0,0,0,0.4);
+            padding: 8px 16px;
+            border-radius: 30px;
+            margin-bottom: 12px;
+            justify-content: center;
+        }
+
+        .score {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 4px 14px;
+            border-radius: 20px;
+            border: 2px solid transparent;
+            opacity: 0.3;
+            transition: all 0.2s;
+        }
+
+        .score.active {
+            opacity: 1;
+            transform: scale(1.03);
+        }
+        .score.p1-active { border-color: var(--p1-color); }
+        .score.p2-active { border-color: var(--p2-color); }
+        .score.p3-active { border-color: var(--p3-color); }
+
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        .p1-dot { background-color: var(--p1-color); box-shadow: 0 0 6px var(--p1-color); }
+        .p2-dot { background-color: var(--p2-color); box-shadow: 0 0 6px var(--p2-color); }
+        .p3-dot { background-color: var(--p3-color); box-shadow: 0 0 6px var(--p3-color); }
+
+        canvas { background: transparent; cursor: pointer; max-width: 100%; height: auto; -webkit-tap-highlight-color: transparent; }
+        #message { margin-top: 8px; font-size: 1.1rem; font-weight: bold; min-height: 1.4em; text-align: center; }
+        .controls { margin-top: 12px; display: flex; gap: 10px; width: 100%; }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div id="setup-screen" class="setup-screen">
+        <h1>Hexxagon Pro</h1>
+        
+        <div class="setup-group">
+            <label>Grid Dimensions</label>
+            <div class="btn-group">
+                <button type="button" id="btn-size-4" class="active" onclick="setBoardSize(4)">Classic Grid (Radius 4)</button>
+                <button type="button" id="btn-size-6" onclick="setBoardSize(6)">Larger Grid (Radius 6)</button>
+            </div>
+        </div>
+
+        <div class="setup-group">
+            <label>Total Players</label>
+            <div class="btn-group">
+                <button type="button" id="btn-players-2" class="active" onclick="setPlayers(2)">2 Players</button>
+                <button type="button" id="btn-players-3" onclick="setPlayers(3)">3 Players</button>
+            </div>
+        </div>
+
+        <div class="setup-group">
+            <label>How many AI Players?</label>
+            <div class="btn-group">
+                <button type="button" id="btn-ai-0" class="active" onclick="setAICount(0)">0 AI (All Human)</button>
+                <button type="button" id="btn-ai-1" onclick="setAICount(1)">1 AI Opponent</button>
+                <button type="button" id="btn-ai-2" onclick="setAICount(2)">2 AI Opponents</button>
+            </div>
+        </div>
+
+        <div class="setup-group" style="width: 100%;">
+            <label>Symmetrical Maps (Perfectly Balanced)</label>
+            <div class="btn-group" style="margin-bottom: 8px;">
+                <button type="button" id="btn-map-fixed" class="active" style="flex-grow:2;">Preset Blueprint</button>
+                <button type="button" id="btn-map-random" onclick="selectRandomMapType()">🎲 Procedural Symmetry</button>
+            </div>
+            <div id="map-grid-container" class="map-grid"></div>
+        </div>
+
+        <button class="btn-start" onclick="startGame()">Launch Balanced Match</button>
+    </div>
+
+    <div id="arena-screen" class="hidden" style="display: flex; flex-direction: column; align-items: center;">
+        <div class="scoreboard">
+            <div id="score-p1" class="score active p1-active"><span class="dot p1-dot"></span> P1 <span id="label-p1"></span>: <span id="count-p1">0</span></div>
+            <div id="score-p2" class="score"><span class="dot p2-dot"></span> P2 <span id="label-p2"></span>: <span id="count-p2">0</span></div>
+            <div id="score-p3" class="score"><span class="dot p3-dot"></span> P3 <span id="label-p3"></span>: <span id="count-p3">0</span></div>
+        </div>
+
+        <canvas id="gameCanvas" width="530" height="530"></canvas>
+        <div id="message"></div>
+
+        <div class="controls">
+            <button onclick="backToMenu()">⚙️ Main Menu</button>
+            <button onclick="resetCurrentGame()">🔄 Restart Layout</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    let hexRadius = 28;
+    let boardRadius = 4; 
+    const EMPTY = 0, WALL = -1;
+    const P1 = 1, P2 = 2, P3 = 3;
+
+    let configPlayers = 2;
+    let configAICount = 0;
+    let selectedMapIdx = 0; 
+    
+    let board = {};
+    let turn = P1;
+    let selectedHex = null;
+    let validMoves = [];
+    let isAnimating = false;
+    let playerList = [P1, P2];
+    let aiPlayers = []; 
+
+    let centerX = canvas.width / 2;
+    let centerY = canvas.height / 2;
+
+    // Mathematical 12-fold symmetry generator for axial hexagonal coords.
+    function generateOmniSymmetry(baseCoords) {
+        let uniqueKeys = new Set();
+        baseCoords.forEach(([q, r]) => {
+            let currQ = q, currR = r;
+            for (let i = 0; i < 6; i++) {
+                uniqueKeys.add(`${currQ},${currR}`);
+                uniqueKeys.add(`${-currR},${-currQ}`);
+                let nextQ = -currR;
+                let nextR = currQ + currR;
+                currQ = nextQ;
+                currR = nextR;
+            }
+        });
+        return Array.from(uniqueKeys).map(str => str.split(',').map(Number));
+    }
+
+    // Adaptable Map Presets: Layout maps automatically distribute vector coordinates based on running scale radius
+    function getSymmetricalMapWalls(index, radius) {
+        if (index === -1) return []; 
+        
+        const m = radius === 6 ? 1.5 : 1.0; 
+        const scale = (coords) => coords.map(([q, r]) => [Math.round(q * m), Math.round(r * m)]);
+
+        const presets = [
+            [], // Equilibrium (Clear map)
+            [[0, 0]], // Nexus Zero
+            [[1, 0]], // Inner Ring
+            [[3, -1]], // Outer Barrier
+            [[2, 0]], // Hexagon Spokes
+            [[2, -1]], // Star Shield
+            [[1, 0], [3, -1]], // Bio-Gate
+            [[2, 0], [1, 1]], // Triple Ridges
+            [[0, 0], [2, 0]], // Symmetric Core
+            [[3, -1], [1, -2]], // Satellite Nodes
+            [[2, -1], [2, 1]], // Citadel Towers
+            [[0, 0], [3, -1], [1, 1]], // Atomic Grid
+            [[2, 0], [3, -2]], // Divided Ring
+            [[1, 0], [2, -1], [3, -1]], // Pinwheel Maze
+            [[1, 1], [2, -2]], // Crystal Cluster
+            [[2, 0], [3, -1]], // Sector Blocks
+            [[0, 0], [1, 0], [2, 0]], // Symmetric Abyss
+            [[1, -1], [3, -1]], // Corona Pillars
+            [[2, -1], [1, 0]], // The Catalyst
+            [[0, 0], [2, 0], [3, -1]] // Grand Design
+        ];
+
+        return generateOmniSymmetry(scale(presets[index] || []));
+    }
+
+    const PRESET_NAMES = [
+        "Equilibrium", "Nexus Zero", "Inner Ring", "Outer Barrier", "Hexagon Spokes",
+        "Star Shield", "Bio-Gate", "Triple Ridges", "Symmetric Core", "Satellite Nodes",
+        "Citadel Towers", "Atomic Grid", "Divided Ring", "Pinwheel Maze", "Crystal Cluster",
+        "Sector Blocks", "Symmetric Abyss", "Corona Pillars", "The Catalyst", "Grand Design"
+    ];
+
+    function setupMapSelectionUI() {
+        const container = document.getElementById('map-grid-container');
+        container.innerHTML = "";
+        PRESET_NAMES.forEach((name, i) => {
+            let btn = document.createElement('button');
+            btn.type = "button";
+            btn.id = `btn-map-${i}`;
+            btn.textContent = `${i+1}. ${name}`;
+            if(i === selectedMapIdx) btn.classList.add('active');
+            btn.onclick = () => selectPresetMap(i);
+            container.appendChild(btn);
+        });
+    }
+
+    function setBoardSize(size) {
+        boardRadius = size;
+        hexRadius = size === 6 ? 19 : 28; 
+        document.getElementById('btn-size-4').classList.toggle('active', size === 4);
+        document.getElementById('btn-size-6').classList.toggle('active', size === 6);
+    }
+
+    function setPlayers(num) {
+        configPlayers = num;
+        document.getElementById('btn-players-2').classList.toggle('active', num === 2);
+        document.getElementById('btn-players-3').classList.toggle('active', num === 3);
+        
+        if (configPlayers === 2 && configAICount === 2) {
+            configAICount = 1;
+        }
+        updateAIOptionsUI();
+    }
+
+    function setAICount(count) {
+        configAICount = count;
+        updateAIOptionsUI();
+    }
+
+    function updateAIOptionsUI() {
+        document.getElementById('btn-ai-0').classList.toggle('active', configAICount === 0);
+        document.getElementById('btn-ai-1').classList.toggle('active', configAICount === 1);
+        document.getElementById('btn-ai-2').classList.toggle('active', configAICount === 2);
+        document.getElementById('btn-ai-2').disabled = (configPlayers === 2);
+    }
+
+    function selectPresetMap(idx) {
+        selectedMapIdx = idx;
+        document.getElementById('btn-map-fixed').classList.add('active');
+        document.getElementById('btn-map-random').classList.remove('active');
+        setupMapSelectionUI();
+    }
+
+    function selectRandomMapType() {
+        selectedMapIdx = -1;
+        document.getElementById('btn-map-fixed').classList.remove('active');
+        document.getElementById('btn-map-random').classList.add('active');
+        PRESET_NAMES.forEach((_, i) => {
+            const btn = document.getElementById(`btn-map-${i}`);
+            if(btn) btn.classList.remove('active');
+        });
+    }
+
+    function backToMenu() {
+        document.getElementById('arena-screen').classList.add('hidden');
+        document.getElementById('setup-screen').style.display = "flex";
+    }
+
+    function axialKey(q, r) { return `${q},${r}`; }
+    
+    function getHexCenter(q, r) {
+        const x = hexRadius * (Math.sqrt(3) * q + Math.sqrt(3)/2 * r) + centerX;
+        const y = hexRadius * (3/2 * r) + centerY;
+        return { x, y };
+    }
+
+    function getDistance(q1, r1, q2, r2) {
+        return (Math.abs(q1 - q2) + Math.abs(q1 + r1 - q2 - r2) + Math.abs(r1 - r2)) / 2;
+    }
+
+    function startGame() {
+        document.getElementById('setup-screen').style.display = "none";
+        document.getElementById('arena-screen').classList.remove('hidden');
+        
+        if (configPlayers === 2) {
+            playerList = [P1, P2];
+            aiPlayers = (configAICount === 1) ? [P2] : [];
+        } else {
+            playerList = [P1, P2, P3];
+            if (configAICount === 1) aiPlayers = [P3];
+            else if (configAICount === 2) aiPlayers = [P2, P3];
+            else aiPlayers = [];
+        }
+
+        document.getElementById('label-p1').textContent = aiPlayers.includes(P1) ? "(AI)" : "(Human)";
+        document.getElementById('label-p2').textContent = aiPlayers.includes(P2) ? "(AI)" : "(Human)";
+        document.getElementById('label-p3').textContent = aiPlayers.includes(P3) ? "(AI)" : "(Human)";
+        document.getElementById('score-p3').classList.toggle('hidden', configPlayers === 2);
+
+        initBoard();
+    }
+
+    function resetCurrentGame() { initBoard(); }
+
+    function initBoard() {
+        board = {};
+        turn = P1;
+        selectedHex = null;
+        validMoves = [];
+        isAnimating = false;
+
+        for (let q = -boardRadius; q <= boardRadius; q++) {
+            let r1 = Math.max(-boardRadius, -q - boardRadius);
+            let r2 = Math.min(boardRadius, -q + boardRadius);
+            for (let r = r1; r <= r2; r++) {
+                board[axialKey(q, r)] = EMPTY;
+            }
+        }
+
+        if (selectedMapIdx === -1) {
+            let randomSeeds = [];
+            for (let q = -boardRadius; q <= boardRadius; q++) {
+                for (let r = Math.max(-boardRadius, -q - boardRadius); r <= Math.min(boardRadius, -q + boardRadius); r++) {
+                    if (Math.abs(q) === boardRadius || Math.abs(r) === boardRadius || Math.abs(-q-r) === boardRadius) continue;
+                    if (q === 0 && r === 0) continue;
+                    if (q >= 0 && r >= 0 && q >= r) {
+                        if (Math.random() < 0.32) randomSeeds.push([q, r]);
+                    }
+                }
+            }
+            let symmetricalWalls = generateOmniSymmetry(randomSeeds);
+            symmetricalWalls.forEach(([q, r]) => {
+                if (board[axialKey(q, r)] !== undefined) board[axialKey(q, r)] = WALL;
+            });
+        } else {
+            let walls = getSymmetricalMapWalls(selectedMapIdx, boardRadius);
+            walls.forEach(([q, r]) => {
+                if (board[axialKey(q, r)] !== undefined) board[axialKey(q, r)] = WALL;
+            });
+        }
+
+        if (configPlayers === 2) {
+            board[axialKey(0, -boardRadius)] = P1;
+            board[axialKey(boardRadius, 0)] = P1;
+            board[axialKey(-boardRadius, boardRadius)] = P1;
+
+            board[axialKey(0, boardRadius)] = P2;
+            board[axialKey(-boardRadius, 0)] = P2;
+            board[axialKey(boardRadius, -boardRadius)] = P2;
+        } else {
+            board[axialKey(0, -boardRadius)] = P1;
+            board[axialKey(boardRadius, -boardRadius)] = P1;
+
+            board[axialKey(-boardRadius, 0)] = P2;
+            board[axialKey(-boardRadius, boardRadius)] = P2;
+
+            board[axialKey(boardRadius, 0)] = P3;
+            board[axialKey(0, boardRadius)] = P3;
+        }
+
+        forceProtectedSpawns();
+        updateUI();
+        updateTurnIndicators();
+        draw();
+
+        if (aiPlayers.includes(turn)) setTimeout(makeAIMove, 400);
+    }
+
+    function forceProtectedSpawns() {
+        const protectionMatrix = (configPlayers === 2) ? 
+            [[0, -boardRadius, P1], [boardRadius, 0, P1], [-boardRadius, boardRadius, P1], [0, boardRadius, P2], [-boardRadius, 0, P2], [boardRadius, -boardRadius, P2]] :
+            [[0, -boardRadius, P1], [boardRadius, -boardRadius, P1], [-boardRadius, 0, P2], [-boardRadius, boardRadius, P2], [boardRadius, 0, P3], [0, boardRadius, P3]];
+        
+        protectionMatrix.forEach(([q, r, playerID]) => {
+            board[axialKey(q, r)] = playerID;
+        });
+    }
+
+    function drawHexagon(x, y, radius, fillColor, strokeColor, lineWidth = 1) {
+        ctx.beginPath();
+        for (let i = 0; i < 6; i++) {
+            const angle = (Math.PI / 3) * i + Math.PI / 6;
+            ctx.lineTo(x + radius * Math.cos(angle), y + radius * Math.sin(angle));
+        }
+        ctx.closePath();
+        ctx.fillStyle = fillColor;
+        ctx.fill();
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = lineWidth;
+        ctx.stroke();
+    }
+
+    function drawPiece(x, y, player) {
+        ctx.beginPath();
+        ctx.arc(x, y, hexRadius * 0.58, 0, Math.PI * 2);
+        let grad = ctx.createRadialGradient(x - 2, y - 2, 1, x, y, hexRadius * 0.58);
+        if (player === P1) {
+            grad.addColorStop(0, '#ff6677'); grad.addColorStop(1, '#b30011');
+            ctx.shadowColor = 'rgba(255, 51, 68, 0.4)';
+        } else if (player === P2) {
+            grad.addColorStop(0, '#80e5ff'); grad.addColorStop(1, '#0088cc');
+            ctx.shadowColor = 'rgba(51, 204, 255, 0.4)';
+        } else {
+            grad.addColorStop(0, '#ffeb99'); grad.addColorStop(1, '#b38f00');
+            ctx.shadowColor = 'rgba(255, 204, 0, 0.4)';
+        }
+        ctx.shadowBlur = 6;
+        ctx.fillStyle = grad;
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+    }
+
+    function draw() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        for (let key in board) {
+            let [q, r] = key.split(',').map(Number);
+            let { x, y } = getHexCenter(q, r);
+            if (board[key] === WALL) {
+                drawHexagon(x, y, hexRadius - 1.5, '#14141a', '#2c2c3d', 2);
+            } else {
+                drawHexagon(x, y, hexRadius - 1.5, '#22222e', '#36364a', 1);
+            }
+        }
+
+        validMoves.forEach(move => {
+            let { x, y } = getHexCenter(move.q, move.r);
+            let color = move.type === 'clone' ? 'rgba(46, 204, 113, 0.35)' : 'rgba(241, 196, 15, 0.35)';
+            let strokeColor = move.type === 'clone' ? '#2ecc71' : '#f1c40f';
+            drawHexagon(x, y, hexRadius - 1.5, color, strokeColor, 2);
+        });
+
+        if (selectedHex) {
+            let { x, y } = getHexCenter(selectedHex.q, selectedHex.r);
+            drawHexagon(x, y, hexRadius - 1.5, 'rgba(255, 255, 255, 0.15)', '#ffffff', 2.5);
+        }
+
+        for (let key in board) {
+            if (board[key] > EMPTY) {
+                let [q, r] = key.split(',').map(Number);
+                let { x, y } = getHexCenter(q, r);
+                drawPiece(x, y, board[key]);
+            }
+        }
+    }
+
+    function getAvailableMoves(q, r) {
+        let moves = [];
+        for (let targetKey in board) {
+            if (board[targetKey] !== EMPTY) continue;
+            let [tq, tr] = targetKey.split(',').map(Number);
+            let dist = getDistance(q, r, tq, tr);
+            if (dist === 1) moves.push({ q: tq, r: tr, type: 'clone' });
+            else if (dist === 2) moves.push({ q: tq, r: tr, type: 'jump' });
+        }
+        return moves;
+    }
+
+    function executeMove(fromHex, toQ, toR, type, player) {
+        isAnimating = true;
+        if (type === 'jump' && fromHex) board[axialKey(fromHex.q, fromHex.r)] = EMPTY;
+        board[axialKey(toQ, toR)] = player;
+
+        let neighbors = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+        neighbors.forEach(([dq, dr]) => {
+            let nKey = axialKey(toQ + dq, toR + dr);
+            if (board[nKey] !== undefined && board[nKey] > EMPTY && board[nKey] !== player) {
+                board[nKey] = player; 
+            }
+        });
+
+        selectedHex = null;
+        validMoves = [];
+        updateUI();
+        draw();
+
+        setTimeout(() => {
+            isAnimating = false;
+            advanceTurn();
+        }, 200);
+    }
+
+    function advanceTurn() {
+        if (isGameOver()) {
+            endGame();
+            return;
+        }
+
+        let currentIndex = playerList.indexOf(turn);
+        let loopsChecked = 0;
+
+        while (loopsChecked < playerList.length) {
+            currentIndex = (currentIndex + 1) % playerList.length;
+            let nextPlayer = playerList[currentIndex];
+
+            if (hasAnyValidMoves(nextPlayer)) {
+                turn = nextPlayer;
+                updateTurnIndicators();
+                if (aiPlayers.includes(turn)) setTimeout(makeAIMove, 400);
+                return;
+            }
+            loopsChecked++;
+        }
+        endGame();
+    }
+
+    function hasAnyValidMoves(player) {
+        for (let key in board) {
+            if (board[key] === player) {
+                let [q, r] = key.split(',').map(Number);
+                if (getAvailableMoves(q, r).length > 0) return true;
+            }
+        }
+        return false;
+    }
+
+    function isGameOver() {
+        if (!Object.values(board).includes(EMPTY)) return true;
+
+        let playersWithMoves = 0;
+        playerList.forEach(p => { if (hasAnyValidMoves(p)) playersWithMoves++; });
+
+        if (playersWithMoves === 0) return true;
+        if (configPlayers === 3 && playersWithMoves <= 1) {
+            fillRemainingSlices();
+            return true;
+        }
+        return false;
+    }
+
+    function fillRemainingSlices() {
+        let survivor = playerList.find(p => hasAnyValidMoves(p));
+        if (!survivor) return;
+        for (let key in board) {
+            if (board[key] === EMPTY) board[key] = survivor;
+        }
+        updateUI(); draw();
+    }
+
+    function endGame() {
+        let counts = getCounts();
+        let winnerText = "";
+        if (configPlayers === 2) {
+            if (counts.p1 > counts.p2) winnerText = "🏆 Player 1 (Red) Wins!";
+            else if (counts.p2 > counts.p1) winnerText = aiPlayers.includes(P2) ? "🤖 Computer AI Wins!" : "🏆 Player 2 (Blue) Wins!";
+            else winnerText = "It's a perfect tie!";
+        } else {
+            let maxScore = Math.max(counts.p1, counts.p2, counts.p3);
+            let winners = [];
+            if (counts.p1 === maxScore) winners.push("Red (P1)");
+            if (counts.p2 === maxScore) winners.push("Blue (P2)");
+            if (counts.p3 === maxScore) winners.push("Yellow (P3)");
+            winnerText = winners.length === 1 ? `🏆 ${winners[0]} Wins!` : `Tie: ${winners.join(' & ')}`;
+        }
+        document.getElementById('message').textContent = winnerText;
+    }
+
+    function getCounts() {
+        let p1 = 0, p2 = 0, p3 = 0;
+        for (let key in board) {
+            if (board[key] === P1) p1++;
+            if (board[key] === P2) p2++;
+            if (board[key] === P3) p3++;
+        }
+        return { p1, p2, p3 };
+    }
+
+    function updateUI() {
+        let counts = getCounts();
+        document.getElementById('count-p1').textContent = counts.p1;
+        document.getElementById('count-p2').textContent = counts.p2;
+        document.getElementById('count-p3').textContent = counts.p3;
+    }
+
+    function updateTurnIndicators() {
+        const b1 = document.getElementById('score-p1'), b2 = document.getElementById('score-p2'), b3 = document.getElementById('score-p3');
+        const msg = document.getElementById('message');
+        [b1, b2, b3].forEach(b => b.classList.remove('active', 'p1-active', 'p2-active', 'p3-active'));
+
+        if (turn === P1) { 
+            b1.classList.add('active', 'p1-active'); 
+            msg.textContent = aiPlayers.includes(P1) ? "AI Thinking..." : "Player 1 (Red) Turn"; 
+            msg.style.color = "var(--p1-color)"; 
+        }
+        else if (turn === P2) { 
+            b2.classList.add('active', 'p2-active'); 
+            msg.textContent = aiPlayers.includes(P2) ? "AI Thinking..." : "Player 2 (Blue) Turn"; 
+            msg.style.color = "var(--p2-color)"; 
+        }
+        else if (turn === P3) { 
+            b3.classList.add('active', 'p3-active'); 
+            msg.textContent = aiPlayers.includes(P3) ? "AI Thinking..." : "Player 3 (Yellow) Turn"; 
+            msg.style.color = "var(--p3-color)"; 
+        }
+    }
+
+    function makeAIMove() {
+        let bestScore = -9999, bestMovesList = [];
+        for (let key in board) {
+            if (board[key] !== turn) continue;
+            let [q, r] = key.split(',').map(Number);
+            getAvailableMoves(q, r).forEach(m => {
+                let score = (m.type === 'clone') ? 1 : 0;
+                let neighbors = [[1, 0], [1, -1], [0, -1], [-1, 0], [-1, 1], [0, 1]];
+                neighbors.forEach(([dq, dr]) => {
+                    let val = board[axialKey(m.q + dq, m.r + dr)];
+                    if (val !== undefined && val > EMPTY && val !== turn) score += 2.5; 
+                });
+                if (score > bestScore) { bestScore = score; bestMovesList = [{ from: {q, r}, to: m }]; }
+                else if (score === bestScore) { bestMovesList.push({ from: {q, r}, to: m }); }
+            });
+        }
+        if (bestMovesList.length > 0) {
+            let choice = bestMovesList[Math.floor(Math.random() * bestMovesList.length)];
+            executeMove(choice.from, choice.to.q, choice.to.r, choice.to.type, turn);
+        } else { advanceTurn(); }
+    }
+
+    function pixelToAxial(px, py) {
+        let x = (px - centerX) / hexRadius, y = (py - centerY) / hexRadius;
+        let q = (Math.sqrt(3)/3 * x - 1/3 * y), r = (2/3 * y);
+        let rx = Math.round(q), ry = Math.round(r), rz = Math.round(-q - r);
+        let xDiff = Math.abs(rx - q), yDiff = Math.abs(ry - r), zDiff = Math.abs(rz - (-q - r));
+        if (xDiff > yDiff && xDiff > zDiff) rx = -ry - rz; else if (yDiff > zDiff) ry = -rx - rz;
+        return { q: rx, r: ry };
+    }
+
+    // Unified Input Handler for both Desktop Clicks and Mobile Touches
+    function handleInput(clientX, clientY) {
+        if (aiPlayers.includes(turn) || isAnimating) return;
+
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+
+        const canvasX = (clientX - rect.left) * scaleX;
+        const canvasY = (clientY - rect.top) * scaleY;
+
+        let axial = pixelToAxial(canvasX, canvasY);
+        let key = axialKey(axial.q, axial.r);
+
+        if (board[key] === undefined || board[key] === WALL) return;
+        
+        if (board[key] === turn) {
+            selectedHex = axial; 
+            validMoves = getAvailableMoves(axial.q, axial.r); 
+            draw(); 
+            return;
+        }
+        
+        let move = validMoves.find(m => m.q === axial.q && m.r === axial.r);
+        if (move) {
+            executeMove(selectedHex, move.q, move.r, move.type, turn);
+        } else { 
+            selectedHex = null; 
+            validMoves = []; 
+            draw(); 
+        }
+    }
+
+    // Desktop Mouse click routing
+    canvas.addEventListener('click', (e) => {
+        handleInput(e.clientX, e.clientY);
+    });
+
+    // Mobile touch interface configuration mapping
+    canvas.addEventListener('touchstart', (e) => {
+        if (e.touches.length > 0) {
+            e.preventDefault(); // Blocks default iOS page double-tap scroll zooms
+            handleInput(e.touches[0].clientX, e.touches[0].clientY);
+        }
+    }, { passive: false });
+
+    setupMapSelectionUI();
+    updateAIOptionsUI();
+</script>
+
+</body>
+</html>
