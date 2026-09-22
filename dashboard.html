@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Member Game Dashboard</title>
+    <style>
+        body { font-family: sans-serif; background: #121212; color: #f0f0f0; padding: 2rem; max-width: 800px; margin: 0 auto; }
+        .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
+        .game-card { background: #1e1e1e; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center; }
+        .game-card a { color: #4CAF50; text-decoration: none; font-weight: bold; display: block; margin-top: 1rem; }
+        .game-card a:hover { text-decoration: underline; }
+        #loading { text-align: center; font-size: 1.2rem; margin-top: 4rem; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <div id="loading">Verifying your subscription and session...</div>
+
+    <div id="dashboard-content" class="hidden">
+        <h1>Welcome Back, Subscriber!</h1>
+        <p>You have full access to all puzzle games and features.</p>
+        
+        <div class="game-grid">
+            <div class="game-card">
+                <h3>Mastermind</h3>
+                <p>Grand Ultimate Edition</p>
+                <a href="mastermind.html">Play Game</a>
+            </div>
+            <div class="game-card">
+                <h3>Hexxagon</h3>
+                <p>Strategy Board Game</p>
+                <a href="hexxagon.html">Play Game</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Simple helper to read a specific cookie by name
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+        }
+
+        async function checkAuthAndLoad() {
+            // Check if JWT token exists in cookies or localStorage
+            const token = getCookie('auth_token') || localStorage.getItem('auth_token');
+
+            if (!token) {
+                // No token found, redirect to login/payment page
+                window.location.href = '/login.html'; 
+                return;
+            }
+
+            try {
+                // Optional: Validate the token against a backend Vercel serverless function
+                const response = await fetch('/api/verify-session', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Session invalid or expired');
+                }
+
+                // If valid, reveal the dashboard content
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('dashboard-content').classList.remove('hidden');
+
+            } catch (error) {
+                console.error('Authentication check failed:', error);
+                // Clear bad token and redirect
+                localStorage.removeItem('auth_token');
+                window.location.href = '/login.html';
+            }
+        }
+
+        // Run check on page load
+        checkAuthAndLoad();
+    </script>
+</body>
+</html>
