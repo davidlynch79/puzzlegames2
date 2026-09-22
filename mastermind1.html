@@ -1,0 +1,1844 @@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
+    <title>Mastermind Grand Ultimate</title>
+    <!-- PAYMENT VERIFICATION PROTECTION -->
+    <script>
+        const urlParams = new URLSearchParams(window.location.search);
+        // Checks if Stripe session parameter or manual unlock token exists
+        const hasPaid = urlParams.has('session_id') || urlParams.get('unlocked') === 'true';
+
+        if (!hasPaid) {
+            window.location.href = 'index.html';
+        }
+    </script>
+    <style>
+        :root {
+            --bg: #0f172a;
+            --panel: #1e293b;
+            --text: #f8fafc;
+            --accent: #3b82f6;
+            --success: #22c55e;
+            --warning: #f59e0b;
+            --border: #334155;
+            --info: #06b6d4;
+            --purple: #a855f7;
+            --danger: #ef4444;
+            /* Highlight colors */
+            --hl-guess: #f59e0b; /* Yellow */
+            --hl-secret: #86efac; /* Light Green */
+            --hl-both: #166534;   /* Dark Green */
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container { width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 10px; }
+
+        .card {
+            background: var(--panel);
+            padding: 15px;
+            border-radius: 16px;
+            border: 1px solid var(--border);
+        }
+
+        .settings-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .btn-restart {
+            background: var(--danger);
+            color: white;
+            border: none;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-restart:hover { opacity: 0.9; }
+
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+            font-size: 0.8rem;
+            background: rgba(0,0,0,0.15);
+            padding: 10px;
+            border-radius: 8px;
+        }
+
+        .settings-grid label { display: flex; align-items: center; gap: 6px; cursor: pointer; }
+
+        .select-wrapper {
+            grid-column: span 2;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 6px;
+            margin-bottom: 4px;
+        }
+
+        select {
+            background: #020617;
+            color: white;
+            border: 1px solid var(--border);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            outline: none;
+        }
+
+        .custom-code-wrapper {
+            grid-column: span 2;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 4px;
+            padding-top: 8px;
+            border-top: 1px solid var(--border);
+        }
+
+        .custom-inputs {
+            display: flex;
+            gap: 6px;
+            width: 100%;
+        }
+
+        input.small-input {
+            background: #020617;
+            border: 1px solid var(--border);
+            color: white;
+            padding: 6px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            flex-grow: 1;
+            text-align: center;
+            font-family: monospace;
+        }
+        input.small-input:focus { border-color: var(--accent); outline: none; }
+
+        .btn-sm {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .btn-sm:disabled { background: #334155 !important; opacity: 0.5; cursor: not-allowed; }
+
+        .history-container {
+            background: #020617;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            margin-bottom: 10px;
+        }
+
+        .history-row {
+            display: grid;
+            grid-template-columns: 20px 48px 1fr 1.2fr 0.9fr 1.1fr;
+            padding: 8px 6px;
+            border-bottom: 1px solid #1e293b;
+            font-size: 0.82rem;
+            align-items: center;
+            gap: 4px;
+        }
+        .history-row :nth-child(3), .history-row :nth-child(4), .history-row :nth-child(5), .history-row :nth-child(6) { text-align: right; }
+        .history-row:last-child { border-bottom: none; }
+        
+        .history-header {
+            font-weight: bold;
+            color: #94a3b8;
+            font-size: 0.65rem;
+            background: rgba(255,255,255,0.02);
+            line-height: 1.1;
+        }
+
+        .input-row-wrapper {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: stretch;
+            margin-bottom: 10px;
+        }
+
+        .input-methods-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            flex-grow: 1;
+        }
+
+        .choices-counter-box {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: #020617;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px;
+            text-align: center;
+            font-family: monospace;
+            line-height: 1.2;
+            margin-bottom: 4px;
+        }
+        .choices-counter-title {
+            font-size: 0.7rem;
+            color: #64748b;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.5px;
+        }
+        .choices-counter-value {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--info);
+            margin-top: 2px;
+        }
+
+        input#guess-input {
+            width: 100%;
+            background: #000;
+            border: 2px solid var(--border);
+            color: white;
+            padding: 12px;
+            font-size: 22px;
+            text-align: center;
+            border-radius: 12px;
+            font-family: monospace;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        input#guess-input:focus { border-color: #4b5563; }
+
+        .split-inputs-row {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+        }
+
+        .digit-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .digit-box {
+            width: 46px;
+            height: 46px;
+            background: #000;
+            border: 2px solid var(--border);
+            color: white;
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            border-radius: 8px;
+            outline: none;
+            font-family: monospace;
+        }
+
+        .combo-grid-container {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+            margin-top: 10px;
+            width: 100%;
+            padding: 6px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #020617;
+        }
+        .mini-combo-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #1e293b;
+        }
+        .mini-combo-row:last-child { border-bottom: none; padding-bottom: 0; }
+        
+        .combo-math-box {
+            min-width: 52px;
+            height: 20px;
+            background: #1e293b;
+            border: 1px solid var(--border);
+            border-radius: 5px;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            user-select: none;
+            font-weight: bold;
+            transition: all 0.2s;
+            font-family: monospace;
+            color: #94a3b8;
+        }
+        .combo-math-box:hover {
+            background: #334155;
+            border-color: var(--accent);
+            color: var(--text);
+        }
+        .combo-math-box.revealed {
+            background: rgba(34, 197, 94, 0.2);
+            color: var(--success);
+            border-color: var(--success);
+        }
+        .combo-math-box.prod-box.revealed {
+            background: rgba(168, 85, 247, 0.2);
+            color: var(--purple);
+            border-color: var(--purple);
+        }
+        .mini-indicators-wrapper {
+            display: flex;
+            justify-content: center;
+            gap: 8px;
+            flex-grow: 1;
+        }
+        .mini-validity-indicator {
+            height: 5px;
+            width: 36px;
+            border-radius: 3px;
+            background: #334155;
+            transition: background 0.2s;
+        }
+        .mini-validity-indicator.valid { background: var(--success); }
+        .mini-validity-indicator.invalid { background: var(--warning); }
+        .mini-validity-indicator.dimmed { opacity: 0.15; }
+
+        .suggestion-box {
+            font-size: 0.60rem;
+            color: var(--info);
+            text-align: center;
+            height: 1.2em;
+            max-width: 46px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        input#guess-input.viable, .digit-box.viable { border-color: var(--success); }
+        input#guess-input.impossible, .digit-box.impossible { border-color: var(--warning); }
+
+        .btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: 12px;
+            font-weight: bold;
+            width: 100%;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+
+        .btn:disabled { background: #334155; color: #64748b; opacity: 0.5; cursor: not-allowed; }
+
+        /* Multiplication Table Styling */
+        #mult-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: monospace;
+            font-size: 0.68rem;
+            text-align: center;
+        }
+        #mult-table th, #mult-table td { border: 1px solid var(--border); padding: 3px 2px; min-width: 36px; }
+        #mult-table th:first-child, #mult-table td.header-cell {
+            position: sticky; left: 0; background: #1e293b; z-index: 2; font-weight: bold; color: #94a3b8;
+        }
+        #mult-table th { background: rgba(255, 255, 255, 0.04); color: #94a3b8; font-weight: bold; }
+        #mult-table td.val-cell { color: #e2e8f0; }
+        #mult-table td.empty-cell { background: rgba(0, 0, 0, 0.2); }
+        #mult-table td.hl-guess { background-color: var(--hl-guess) !important; color: #000 !important; font-weight: bold; }
+        #mult-table td.hl-secret { background-color: var(--hl-secret) !important; color: #000 !important; font-weight: bold; }
+        #mult-table td.hl-both { background-color: var(--hl-both) !important; color: #fff !important; font-weight: bold; }
+
+        .matrix-grid, .bigram-grid, .synergy-list, .prob-table {
+            border-radius: 8px; background: #020617; border: 1px solid var(--border);
+        }
+
+        .matrix-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px 15px; font-family: monospace; font-size: 0.95rem; padding: 10px;
+        }
+
+        .matrix-item { display: flex; justify-content: space-between; border-bottom: 1px solid #1e293b; padding: 2px 0; }
+        .matrix-num { color: #94a3b8; font-weight: bold; }
+        .matrix-track { color: #f59e0b; letter-spacing: 2px; }
+        .matrix-track.frequency { color: var(--purple); }
+
+        .bigram-grid {
+            display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; font-family: monospace; font-size: 0.82rem; max-height: 140px; overflow-y: auto; padding: 8px;
+        }
+        .bigram-item { background: rgba(255, 255, 255, 0.02); padding: 4px 6px; border-radius: 4px; border: 1px solid #1e293b; display: flex; justify-content: space-between; }
+        .bi-pattern { color: var(--info); font-weight: bold; }
+        .bi-count { color: #64748b; }
+
+        .synergy-list {
+            display: flex; flex-direction: column; gap: 5px; font-family: monospace; font-size: 0.82rem; padding: 8px; max-height: 125px; overflow-y: auto;
+        }
+        .synergy-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 6px; background: rgba(255,255,255,0.01); border-radius: 4px; border-bottom: 1px solid #111827; }
+        .syn-left { color: #94a3b8; }
+        .syn-combo { color: var(--accent); font-weight: bold; }
+        .syn-result { color: var(--success); font-weight: bold; }
+        .syn-count { color: #64748b; font-weight: bold; }
+
+        .deduction-container {
+            background: #020617; padding: 10px; border-radius: 8px; border: 1px solid var(--border); max-height: 120px; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 6px;
+        }
+        .rule-item { padding: 6px 8px; border-radius: 6px; border-left: 3px solid var(--border); background: rgba(255,255,255,0.02); }
+        .rule-item.confirmed { border-left-color: var(--success); color: #4ade80; }
+        .rule-item.eliminated { border-left-color: var(--warning); color: #f87171; }
+        .rule-item.grouping { border-left-color: var(--info); color: #22d3ee; }
+
+        .prob-table { width: 100%; border-collapse: collapse; overflow: hidden; font-family: monospace; font-size: 0.82rem; }
+        .prob-table th, .prob-table td { padding: 6px 4px; text-align: center; border-bottom: 1px solid #1e293b; }
+        .prob-table th { background: rgba(255,255,255,0.03); color: #94a3b8; font-size: 0.75rem; }
+        .prob-num { font-weight: bold; color: #f8fafc; background: rgba(255,255,255,0.05); width: 28px; }
+        .p-high { color: #22c55e; font-weight: bold; }
+        .p-med { color: #3b82f6; }
+        .p-low { color: #64748b; }
+        .p-zero { color: #334155; opacity: 0.4; }
+
+        .sort-header-row { display: grid; grid-template-columns: 55px 75px 55px 1fr; padding: 6px 4px; font-size: 0.72rem; color: #94a3b8; font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+        .bad-guess-header-row { display: grid; grid-template-columns: 65px 105px 1fr; padding: 6px 4px; font-size: 0.72rem; color: #94a3b8; font-weight: bold; border-bottom: 1px solid var(--border); margin-bottom: 4px; }
+
+        .bad-guess-item { display: grid; grid-template-columns: 65px 105px 1fr; border-bottom: 1px solid #111827; padding: 5px 2px; align-items: center; font-family: monospace; font-size: 0.82rem; }
+        .bad-guess-item:last-child { border-bottom: none; }
+        .bg-code { color: var(--danger); font-weight: bold; font-size: 0.9rem; }
+        .bg-elim { color: var(--success); font-weight: 600; }
+        .bg-remain { color: #64748b; text-align: right; }
+
+        .sort-col { cursor: pointer; user-select: none; display: flex; align-items: center; gap: 2px; }
+        .sort-col:hover { color: #f8fafc; }
+        .sort-col.active { color: var(--accent); }
+        .sort-col.active.purple { color: var(--purple); }
+        .text-right { justify-content: flex-end; text-align: right; }
+
+        #possibilities-list { background: #000; padding: 10px; border-radius: 8px; font-size: 0.8rem; font-family: monospace; display: flex; flex-direction: column; gap: 4px; max-height: 400px; overflow-y: auto;}
+        .candidate-item { display: grid; grid-template-columns: 55px 75px 55px 1fr; border-bottom: 1px solid #111827; padding: 4px 2px; align-items: center; }
+        .candidate-item:last-child { border-bottom: none; }
+        .c-code { color: #4ade80; font-weight: bold; font-size: 0.9rem; }
+        .c-code.hidden-mask { color: #64748b; font-style: italic; }
+        .c-risk { color: #3b82f6; }
+        .c-worst { color: var(--warning); }
+        .c-entropy { color: var(--purple); text-align: right; font-weight: 500; }
+
+        .btn-toggle-unhide { background: #334155; color: #e2e8f0; border: 1px solid var(--border); padding: 4px 10px; border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; }
+        .btn-toggle-unhide.revealed { background: rgba(34, 197, 94, 0.2); color: #4ade80; border-color: var(--success); }
+        
+        #viability-label { text-align: center; font-size: 0.82rem; min-height: 2.4em; line-height: 1.3; margin-bottom: 5px; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="card">
+        <div class="settings-header">
+            <h3 style="margin:0">Mastermind</h3>
+            <button type="button" class="btn-restart" onclick="newGame()">RESTART</button>
+        </div>
+        
+        <div class="settings-grid">
+            <div class="select-wrapper">
+                <span>Code Length:</span>
+                <select id="code-length" onchange="newGame()">
+                    <option value="3">3 Digits</option>
+                    <option value="4" selected="">4 Digits</option>
+                    <option value="5">5 Digits</option>
+                    <option value="6">6 Digits</option>
+                </select>
+            </div>
+            <label><input type="checkbox" id="toggle-zero" onchange="newGame()"> Include '0'</label>
+            <label><input type="checkbox" id="toggle-repeats" onchange="newGame()"> Reps</label>
+            <label style="color:var(--warning);"><input type="checkbox" id="toggle-hard" onchange="validateInput()"> Force Bad Guesses</label>
+            <label style="color:var(--danger);"><input type="checkbox" id="toggle-adversarial" onchange="updateAdversarialState()"> Adversarial Mode</label>
+            <label style="grid-column: span 2;"><input type="checkbox" id="toggle-suggestions" onchange="renderSuggestions()"> Show Suggestions</label>
+            <label style="grid-column: span 2;"><input type="checkbox" id="toggle-combo-validity" checked="" onchange="updateUI()"> Show Position Validities</label>
+            
+            <div class="custom-code-wrapper">
+                <label><input type="checkbox" id="toggle-custom" onchange="handleCustomModeToggle()"> Multiplayer / Custom Secret Code</label>
+                <div id="custom-inputs-row" style="display: none; flex-direction: column; gap: 8px;">
+                    <label style="font-size:0.72rem; color:#94a3b8;">Two Word Phrase <span style="color:#475569;">(you + a friend each pick one word — order doesn't matter)</span></label>
+                    <div class="custom-inputs">
+                        <input type="text" class="small-input" id="phrase-input" placeholder="e.g. dog cat" maxlength="40" autocomplete="off" oninput="validatePhraseInput()">
+                        <button type="button" class="btn-sm" id="convert-phrase-btn" style="background:var(--purple); flex-shrink:0;" onclick="convertPhraseToCode()" disabled="">CONVERT</button>
+                    </div>
+
+                    <div style="text-align:center; font-size:0.65rem; color:#475569; margin: -2px 0;">— or set the digits manually —</div>
+
+                    <div class="custom-inputs">
+                        <input type="tel" class="small-input" id="custom-secret-input" placeholder="Set Custom Secret" oninput="validateCustomSecret()" maxlength="5">
+                        <button type="button" class="btn-sm" id="custom-lock-btn" onclick="lockCustomSecret()">LOCK</button>
+                        <button type="button" class="btn-sm" id="generate-enc-btn" style="background:var(--info);" onclick="generateEncryptedCode()">ENCRYPT</button>
+                    </div>
+                    <div id="encrypted-output-container" style="display: none; font-size: 0.8rem; text-align: center; padding: 6px; border-radius: 4px; font-family: monospace;"></div>
+                    
+                    <div style="display:flex; gap:6px; width:100%; align-items:center; border-top: 1px solid #334155; padding-top: 8px;">
+                        <input type="tel" class="small-input" id="encrypted-secret-input" placeholder="Paste encrypted code here" oninput="validateEncryptedCode()" maxlength="8">
+                        <button type="button" class="btn-sm" id="load-enc-btn" style="background:var(--purple);" onclick="loadEncryptedCode()" disabled="">LOAD CODE</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="choices-counter-box">
+            <div class="choices-counter-title">Choices Left</div>
+            <div class="choices-counter-value" id="count-display"></div>
+        </div>
+
+        <div class="history-container">
+            <div class="history-row history-header">
+                <div>#</div>
+                <div style="text-align: left;">Guess</div>
+                <div>correct number/s</div>
+                <div>includes correct position</div>
+                <div>choices left</div>
+                <div>choice reduction ratio</div>
+            </div>
+            <div id="history-body"></div>
+        </div>
+        
+        <div id="viability-label"></div>
+        
+        <div class="input-row-wrapper">
+            <div class="input-methods-container">
+                <input type="text" id="guess-input" placeholder="----" maxlength="4" class="">
+                <div class="split-inputs-row" id="split-inputs-container"></div>
+                <div id="combo-grid-view" class="combo-grid-container" style="display: flex;"></div>
+            </div>
+        </div>
+        
+        <button type="button" class="btn" id="submit-btn" disabled="">SUBMIT GUESS</button>
+
+        <div style="margin-top: 12px; display: flex; flex-direction: column; gap: 8px;">
+            <label style="font-size: 0.8rem; display: flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; color: #94a3b8;">
+                <input type="checkbox" id="toggle-mult-table" onchange="toggleMultTable()"> Show 16x110 Multiplication Table
+            </label>
+            <div id="mult-table-container" style="display: none; background: rgb(2, 6, 23); border: 1px solid var(--border); border-radius: 8px; padding: 8px; overflow-x: auto;">
+                <table id="mult-table"></table>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Logical Deductions:</div>
+        <div class="deduction-container" id="deduction-rules-container"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Digit Position Availability:</div>
+        <div class="matrix-grid" id="matrix-container"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Digit Frequency (Count in Code):</div>
+        <div class="matrix-grid" id="frequency-container"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Positional Pairings (Adjacent &amp; Non-Adjacent):</div>
+        <div class="bigram-grid" id="bigram-container"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Pairing Synergy Matrix (Top Interlocking Combinations):</div>
+        <div class="synergy-list" id="synergy-container"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Live Path Matrix (Choices left based on actual secret):</div>
+        <table class="prob-table">
+            <thead>
+                <tr id="prob-header-row"></tr>
+            </thead>
+            <tbody id="prob-matrix-body"></tbody>
+        </table>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom: 8px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="color:#94a3b8; font-weight:bold;">Filtered Possibilities View</span>
+            <button type="button" class="btn-toggle-unhide" id="unhide-btn" onclick="toggleAnswersHidden()">unhide answers</button>
+        </div>
+        
+        <div class="sort-header-row">
+            <div class="sort-col" id="col-code" onclick="setSort('code')">Choice<span id="dir-code"></span></div>
+            <div class="sort-col active" id="col-left" onclick="setSort('left')">Left<span id="dir-left">↑</span></div>
+            <div class="sort-col" id="col-worst" onclick="setSort('worst')">Max<span id="dir-worst"></span></div>
+            <div class="sort-col text-right" id="col-entropy" onclick="setSort('entropy')">Info<span id="dir-entropy"></span></div>
+        </div>
+
+        <div id="possibilities-list"></div>
+    </div>
+
+    <div class="card">
+        <div style="font-size:0.8rem; color:#94a3b8; margin-bottom:6px; font-weight:bold;">Anti-Solution Optimization (Worst-Case Maximizers):</div>
+        <div class="bad-guess-header-row">
+            <div>Bad Choice</div>
+            <div>Eliminated options</div>
+            <div style="text-align:right">Guaranteed Pool Left</div>
+        </div>
+        <div id="bad-guesses-list" style="background:#000; padding:10px; border-radius:8px; display:flex; flex-direction:column; gap:4px; max-height: 280px; overflow-y: auto;"></div>
+    </div>
+</div>
+
+<script>
+    let secretCode = "", candidates = [], masterUniverse = [], historyCount = 0, gameIsWon = false;
+    let codeLen = 4;
+    let revealedSums = new Set(), revealedProducts = new Set();
+    
+    let currentSortField = "left"; 
+    let currentSortAsc = true;     
+    let answersHidden = true;
+    let showAllLiveSums = false, showAllLiveProds = false;
+
+    const input = document.getElementById('guess-input');
+    const splitContainer = document.getElementById('split-inputs-container');
+    const submitBtn = document.getElementById('submit-btn');
+    const label = document.getElementById('viability-label');
+    const listContainer = document.getElementById('possibilities-list');
+    const badGuessesContainer = document.getElementById('bad-guesses-list');
+    const matrixContainer = document.getElementById('matrix-container');
+    const frequencyContainer = document.getElementById('frequency-container');
+    const bigramContainer = document.getElementById('bigram-container');
+    const synergyContainer = document.getElementById('synergy-container');
+    const deductionsContainer = document.getElementById('deduction-rules-container');
+    const matrixBody = document.getElementById('prob-matrix-body');
+    const headerRow = document.getElementById('prob-header-row');
+    const unhideBtn = document.getElementById('unhide-btn');
+    
+    const customToggle = document.getElementById('toggle-custom');
+    const customInputsRow = document.getElementById('custom-inputs-row');
+    const customSecretInput = document.getElementById('custom-secret-input');
+    const customLockBtn = document.getElementById('custom-lock-btn');
+    const adversarialToggle = document.getElementById('toggle-adversarial');
+
+    let isSyncing = false;
+
+    function getCombinations(arr, k) {
+        let i, j, combs, head, tailcombs;
+        if (k > arr.length || k <= 0) { return []; }
+        if (k == arr.length) { return [arr]; }
+        if (k == 1) {
+            combs = [];
+            for (i = 0; i < arr.length; i++) { combs.push([arr[i]]); }
+            return combs;
+        }
+        combs = [];
+        for (i = 0; i < arr.length - k + 1; i++) {
+            head = arr.slice(i, i + 1);
+            tailcombs = getCombinations(arr.slice(i + 1), k - 1);
+            for (j = 0; j < tailcombs.length; j++) { combs.push(head.concat(tailcombs[j])); }
+        }
+        return combs;
+    }
+
+    function buildSplitInputBoxes() {
+        splitContainer.innerHTML = '';
+        for (let i = 0; i < codeLen; i++) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'digit-wrapper';
+            
+            const box = document.createElement('input');
+            box.type = 'tel';
+            box.maxLength = 1;
+            box.className = 'digit-box';
+            box.dataset.index = i;
+
+            box.addEventListener('input', (e) => {
+                if (isSyncing || gameIsWon) return;
+                let val = box.value.replace(/\D/g, '');
+                box.value = val;
+                
+                isSyncing = true;
+                let compiled = "";
+                const boxes = splitContainer.querySelectorAll('.digit-box');
+                boxes.forEach(b => { compiled += b.value === "" ? " " : b.value; });
+                
+                input.value = compiled;
+                validateInput();
+                isSyncing = false;
+
+                if (val && i < codeLen - 1) {
+                    boxes[i + 1].focus();
+                    boxes[i + 1].select();
+                }
+                renderSuggestions();
+                updateComboValidityIndicators();
+                updateMultTableHighlights();
+            });
+
+            box.addEventListener('keydown', (e) => {
+                if (gameIsWon) return;
+                const boxes = splitContainer.querySelectorAll('.digit-box');
+                if (e.key === 'Backspace' && !box.value && i > 0) {
+                    boxes[i - 1].focus();
+                    boxes[i - 1].value = '';
+                    
+                    isSyncing = true;
+                    let compiled = "";
+                    boxes.forEach(b => { compiled += b.value === "" ? " " : b.value; });
+                    input.value = compiled;
+                    validateInput();
+                    isSyncing = false;
+                    renderSuggestions();
+                    updateComboValidityIndicators();
+                    updateMultTableHighlights();
+                } else if (e.key === 'Enter' && !submitBtn.disabled) {
+                    processGuess(e);
+                }
+            });
+            wrapper.appendChild(box);
+            splitContainer.appendChild(wrapper);
+        }
+    }
+
+    function toggleAllLiveSums() {
+        showAllLiveSums = !showAllLiveSums;
+        updateComboValidityIndicators();
+    }
+
+    function toggleAllLiveProds() {
+        showAllLiveProds = !showAllLiveProds;
+        updateComboValidityIndicators();
+    }
+
+    function updateComboValidityIndicators() {
+        const container = document.getElementById('combo-grid-view');
+        const showCombo = document.getElementById('toggle-combo-validity').checked;
+        container.innerHTML = '';
+        
+        if (!showCombo) {
+            container.style.display = 'none';
+            return;
+        }
+        container.style.display = 'flex';
+
+        const headerRow = document.createElement('div');
+        headerRow.className = 'mini-combo-row';
+        headerRow.style.paddingBottom = '6px';
+        headerRow.style.borderBottom = '1px solid var(--border)';
+        headerRow.style.marginBottom = '5px';
+        headerRow.style.cursor = 'default';
+
+        headerRow.innerHTML = `
+            <div style="min-width: 52px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center;" onclick="toggleAllLiveSums()">
+                <input type="checkbox" ${showAllLiveSums ? 'checked' : ''} style="margin:0; pointer-events: none; width:22px; height:22px; cursor: pointer;">
+            </div>
+            <div style="min-width: 52px;"></div>
+            <div style="flex-grow: 1;"></div>
+            <div style="min-width: 52px;"></div>
+            <div style="min-width: 52px; text-align: center; cursor: pointer; display: flex; flex-direction: column; align-items: center;" onclick="toggleAllLiveProds()">
+                <input type="checkbox" ${showAllLiveProds ? 'checked' : ''} style="margin:0; pointer-events: none; width:22px; height:22px; cursor: pointer;">
+            </div>
+        `;
+        container.appendChild(headerRow);
+
+        const inputs = Array.from(splitContainer.querySelectorAll('.digit-box')).map(b => b.value);
+        const indices = Array.from({length: codeLen}, (_, i) => i);
+        
+        let combos = [];
+        for (let k = 1; k <= codeLen; k++) {
+            combos = combos.concat(getCombinations(indices, k));
+        }
+
+        combos.forEach(combo => {
+            const comboKey = combo.join(',');
+            const row = document.createElement('div');
+            row.className = 'mini-combo-row';
+            
+            const isFullyInput = combo.every(idx => inputs[idx] !== "");
+
+            const liveSumBox = document.createElement('div');
+            liveSumBox.className = 'combo-math-box sum-box';
+            if (showAllLiveSums && isFullyInput) {
+                const liveSumVal = combo.reduce((acc, idx) => acc + parseInt(inputs[idx]), 0);
+                liveSumBox.innerText = liveSumVal;
+                liveSumBox.classList.add('revealed');
+            } else {
+                liveSumBox.innerText = '+';
+            }
+            row.appendChild(liveSumBox);
+
+            const sumBox = document.createElement('div');
+            sumBox.className = 'combo-math-box sum-box';
+            if (revealedSums.has(comboKey)) {
+                const sumVal = combo.reduce((acc, idx) => acc + parseInt(secretCode[idx] || 0), 0);
+                sumBox.innerText = sumVal;
+                sumBox.classList.add('revealed');
+            } else {
+                sumBox.innerText = '+';
+            }
+            sumBox.onclick = () => {
+                if (revealedSums.has(comboKey)) revealedSums.delete(comboKey);
+                else revealedSums.add(comboKey);
+                updateComboValidityIndicators();
+            };
+            row.appendChild(sumBox);
+
+            const indicatorsWrapper = document.createElement('div');
+            indicatorsWrapper.className = 'mini-indicators-wrapper';
+
+            let isValid = false;
+            if (isFullyInput) {
+                isValid = candidates.some(c => combo.every(idx => c[idx] === inputs[idx]));
+            }
+
+            for (let c = 0; c < codeLen; c++) {
+                const wrapper = document.createElement('div');
+                wrapper.className = 'digit-wrapper';
+                
+                const indicator = document.createElement('div');
+                indicator.className = 'mini-validity-indicator';
+
+                if (combo.includes(c)) {
+                    if (isFullyInput) {
+                        indicator.classList.add(isValid ? 'valid' : 'invalid');
+                    } else {
+                        indicator.style.background = '#64748b'; 
+                    }
+                } else {
+                    indicator.classList.add('dimmed');
+                }
+
+                wrapper.appendChild(indicator);
+                indicatorsWrapper.appendChild(wrapper);
+            }
+            row.appendChild(indicatorsWrapper);
+
+            const prodBox = document.createElement('div');
+            prodBox.className = 'combo-math-box prod-box';
+            if (revealedProducts.has(comboKey)) {
+                const prodVal = combo.reduce((acc, idx) => acc * parseInt(secretCode[idx] || 0), 1);
+                prodBox.innerText = prodVal;
+                prodBox.classList.add('revealed');
+            } else {
+                prodBox.innerText = '×';
+            }
+            prodBox.onclick = () => {
+                if (revealedProducts.has(comboKey)) revealedProducts.delete(comboKey);
+                else revealedProducts.add(comboKey);
+                updateComboValidityIndicators();
+                updateMultTableHighlights();
+            };
+            row.appendChild(prodBox);
+
+            const liveProdBox = document.createElement('div');
+            liveProdBox.className = 'combo-math-box prod-box';
+            if (showAllLiveProds && isFullyInput) {
+                const liveProdVal = combo.reduce((acc, idx) => acc * parseInt(inputs[idx]), 1);
+                liveProdBox.innerText = liveProdVal;
+                liveProdBox.classList.add('revealed');
+            } else {
+                liveProdBox.innerText = '×';
+            }
+            row.appendChild(liveProdBox);
+
+            container.appendChild(row);
+        });
+    }
+
+    function renderSuggestions() {
+        const show = document.getElementById('toggle-suggestions').checked;
+        const currentInputs = Array.from(splitContainer.querySelectorAll('.digit-box')).map(b => b.value);
+        
+        document.querySelectorAll('.suggestion-box').forEach(el => el.remove());
+
+        if (!show) return;
+
+        const boxes = splitContainer.querySelectorAll('.digit-box');
+        boxes.forEach((box, i) => {
+            if (box.value === "") {
+                let possible = new Set();
+                candidates.forEach(c => {
+                    let matchesPrefix = true;
+                    for(let j=0; j<codeLen; j++) {
+                        if(currentInputs[j] !== "" && currentInputs[j] !== c[j]) {
+                            matchesPrefix = false; break;
+                        }
+                    }
+                    if(matchesPrefix) possible.add(c[i]);
+                });
+
+                const suggest = document.createElement('div');
+                suggest.className = 'suggestion-box';
+                suggest.innerText = Array.from(possible).sort().join('');
+                box.parentNode.appendChild(suggest);
+            }
+        });
+    }
+
+    function syncMasterToSplit() {
+        if (isSyncing) return;
+        isSyncing = true;
+
+        let rawVal = input.value;
+        if (rawVal.length > codeLen) {
+            rawVal = rawVal.substring(0, codeLen);
+            input.value = rawVal;
+        }
+
+        const boxes = splitContainer.querySelectorAll('.digit-box');
+        for (let i = 0; i < codeLen; i++) {
+            let char = rawVal[i];
+            if (char && /\d/.test(char)) { boxes[i].value = char; } 
+            else { boxes[i].value = ''; }
+        }
+        isSyncing = false;
+        updateComboValidityIndicators();
+    }
+
+    function clearAllInputs() {
+        input.value = "";
+        const boxes = splitContainer.querySelectorAll('.digit-box');
+        boxes.forEach(b => b.value = '');
+        renderSuggestions();
+        updateComboValidityIndicators();
+        updateMultTableHighlights();
+    }
+
+    function toggleMultTable() {
+        const checkbox = document.getElementById('toggle-mult-table');
+        const container = document.getElementById('mult-table-container');
+        container.style.display = checkbox.checked ? 'block' : 'none';
+        if (checkbox.checked) updateMultTableHighlights();
+    }
+
+    function buildMultiplicationTable() {
+        const table = document.getElementById('mult-table');
+        let html = '<thead><tr><th>×</th>';
+        for (let i = 1; i <= 110; i++) {
+            html += `<th>${i}</th>`;
+        }
+        html += '</tr></thead><tbody>';
+        for (let r = 1; r <= 16; r++) {
+            html += `<tr><td class="header-cell">${r}</td>`;
+            for (let c = 1; c <= 110; c++) {
+                if (c < r) {
+                    html += `<td class="empty-cell"></td>`;
+                } else {
+                    html += `<td class="val-cell" data-val="${r * c}">${r * c}</td>`;
+                }
+            }
+            html += '</tr>';
+        }
+        html += '</tbody>';
+        table.innerHTML = html;
+        updateMultTableHighlights();
+    }
+
+    function updateMultTableHighlights() {
+        const table = document.getElementById('mult-table');
+        const cells = table.querySelectorAll('.val-cell');
+        
+        // 1. Get Guess Products
+        const inputs = Array.from(splitContainer.querySelectorAll('.digit-box')).map(b => b.value);
+        const indices = Array.from({length: codeLen}, (_, i) => i);
+        const allCombos = [];
+        for (let k = 1; k <= codeLen; k++) allCombos.push(...getCombinations(indices, k));
+        
+        const guessProducts = new Set();
+        if (inputs.every(v => v !== "")) {
+            allCombos.forEach(c => {
+                const prod = c.reduce((acc, idx) => acc * parseInt(inputs[idx]), 1);
+                guessProducts.add(prod);
+            });
+        } else if (showAllLiveProds) {
+             allCombos.forEach(c => {
+                if (c.every(idx => inputs[idx] !== "")) {
+                    const prod = c.reduce((acc, idx) => acc * parseInt(inputs[idx]), 1);
+                    guessProducts.add(prod);
+                }
+            });
+        }
+
+        // 2. Get Secret Products
+        const secretProducts = new Set();
+        revealedProducts.forEach(key => {
+            const indices = key.split(',').map(Number);
+            const prod = indices.reduce((acc, idx) => acc * parseInt(secretCode[idx] || 0), 1);
+            secretProducts.add(prod);
+        });
+
+        // 3. Apply classes
+        cells.forEach(cell => {
+            const val = parseInt(cell.dataset.val);
+            const isGuess = guessProducts.has(val);
+            const isSecret = secretProducts.has(val);
+            
+            cell.classList.remove('hl-guess', 'hl-secret', 'hl-both');
+            if (isGuess && isSecret) cell.classList.add('hl-both');
+            else if (isGuess) cell.classList.add('hl-guess');
+            else if (isSecret) cell.classList.add('hl-secret');
+        });
+    }
+
+    function updateAdversarialState() {
+        if (adversarialToggle.checked) {
+            customToggle.checked = false;
+            handleCustomModeToggle();
+        }
+    }
+
+    function newGame() {
+        const useZero = document.getElementById('toggle-zero').checked;
+        const allowRep = document.getElementById('toggle-repeats').checked;
+        codeLen = parseInt(document.getElementById('code-length').value);
+        
+        document.getElementById('history-body').innerHTML = '';
+        input.maxLength = codeLen;
+        input.placeholder = "-".repeat(codeLen);
+        historyCount = 0;
+        gameIsWon = false;
+
+        revealedSums.clear();
+        revealedProducts.clear();
+        showAllLiveSums = false;
+        showAllLiveProds = false;
+        
+        currentSortField = "left";
+        currentSortAsc = true;
+        answersHidden = true;
+        unhideBtn.innerText = "unhide answers";
+        unhideBtn.classList.remove("revealed");
+
+        buildSplitInputBoxes();
+        clearAllInputs();
+        
+        const digits = useZero ? "0123456789" : "123456789";
+        candidates = [];
+        const generate = (str) => {
+            if (str.length === codeLen) { candidates.push(str); return; }
+            for (let d of digits) { if (!allowRep && str.includes(d)) continue; generate(str + d); }
+        };
+        generate("");
+        
+        masterUniverse = [...candidates];
+        
+        if (customToggle.checked) {
+            customSecretInput.maxLength = codeLen;
+            document.getElementById('encrypted-secret-input').maxLength = codeLen + 4; // accommodate Hard mode's longer format
+            validateCustomSecret();
+            validateEncryptedCode();
+            if (!candidates.includes(customSecretInput.value) && document.getElementById('encrypted-output-container').innerText !== "Game Loaded!") { 
+                secretCode = candidates[0]; 
+            } else if (document.getElementById('encrypted-output-container').innerText !== "Game Loaded!") { 
+                secretCode = customSecretInput.value; 
+            }
+        } else {
+            secretCode = candidates[Math.floor(Math.random() * candidates.length)];
+        }
+        updateUI();
+    }
+
+    function handleCustomModeToggle() {
+        if (customToggle.checked) {
+            adversarialToggle.checked = false;
+            customInputsRow.style.display = "flex";
+            customSecretInput.maxLength = codeLen;
+            document.getElementById('encrypted-secret-input').maxLength = codeLen + 4; // accommodate Hard mode's longer format
+            customSecretInput.value = "";
+            document.getElementById('phrase-input').value = "";
+            document.getElementById('encrypted-secret-input').value = "";
+            customLockBtn.disabled = true;
+            document.getElementById('convert-phrase-btn').disabled = true;
+            document.getElementById('generate-enc-btn').disabled = true;
+            document.getElementById('load-enc-btn').disabled = true;
+            document.getElementById('encrypted-output-container').style.display = "none";
+        } else {
+            customInputsRow.style.display = "none";
+            newGame();
+        }
+    }
+
+    function validateCustomSecret() {
+        const val = customSecretInput.value;
+        const useZero = document.getElementById('toggle-zero').checked;
+        const allowRep = document.getElementById('toggle-repeats').checked;
+
+        const regex = new RegExp(`^\\d{${codeLen}}$`);
+        const isValidStructure = regex.test(val);
+        const hasInvalidZero = !useZero && val.includes('0');
+        const hasIllegalRep = !allowRep && (new Set(val).size !== val.length);
+
+        if (isValidStructure && !hasInvalidZero && !hasIllegalRep && candidates.includes(val)) {
+            customLockBtn.disabled = false;
+            document.getElementById('generate-enc-btn').disabled = false;
+        } else {
+            customLockBtn.disabled = true;
+            document.getElementById('generate-enc-btn').disabled = true;
+        }
+    }
+
+    function lockCustomSecret() {
+        if (customLockBtn.disabled) return;
+        secretCode = customSecretInput.value;
+        
+        document.getElementById('history-body').innerHTML = '';
+        clearAllInputs();
+        historyCount = 0;
+        gameIsWon = false;
+
+        revealedSums.clear();
+        revealedProducts.clear();
+        showAllLiveSums = false;
+        showAllLiveProds = false;
+        
+        const useZero = document.getElementById('toggle-zero').checked;
+        const allowRep = document.getElementById('toggle-repeats').checked;
+        const digits = useZero ? "0123456789" : "123456789";
+        candidates = [];
+        const generate = (str) => {
+            if (str.length === codeLen) { candidates.push(str); return; }
+            for (let d of digits) { if (!allowRep && str.includes(d)) continue; generate(str + d); }
+        };
+        generate("");
+
+        masterUniverse = [...candidates];
+        updateUI();
+    }
+
+    // --- TWO WORD PHRASE → SECRET CODE ---
+    function validatePhraseInput() {
+        const val = document.getElementById('phrase-input').value.trim();
+        document.getElementById('convert-phrase-btn').disabled = (val.length === 0);
+    }
+
+    function hashString(str) {
+        let hash = 5381;
+        for (let i = 0; i < str.length; i++) {
+            hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0; // hash*33 + charCode, wrapped to 32-bit
+        }
+        return Math.abs(hash);
+    }
+
+    function convertPhraseToCode() {
+        const phraseField = document.getElementById('phrase-input');
+        const raw = phraseField.value.trim().toLowerCase();
+        if (!raw || candidates.length === 0) return;
+
+        const normalized = raw.split(/\s+/).filter(Boolean).sort().join(' ');
+        const hash = hashString(normalized);
+        const code = candidates[hash % candidates.length];
+
+        customSecretInput.value = code;
+        validateCustomSecret();
+        lockCustomSecret();
+        generateEncryptedCode();
+        customSecretInput.value = '';
+
+        phraseField.value = '';
+        document.getElementById('convert-phrase-btn').disabled = true;
+    }
+    // ------------------------------------
+
+    // --- MULTIPLAYER ENCRYPTION LOGIC ---
+    function makeKeystream(seed, length) {
+        let x = (seed ^ 0x9E3779B9) | 0;
+        if (x === 0) x = 1;
+        const stream = [];
+        for (let i = 0; i < length; i++) {
+            x ^= x << 13;
+            x ^= x >> 17;
+            x ^= x << 5;
+            stream.push(Math.abs(x) % 10);
+        }
+        return stream;
+    }
+
+    function digitSum(str) {
+        return str.split('').reduce((s, d) => s + parseInt(d, 10), 0) % 10;
+    }
+
+    function generateEncryptedCode() {
+        const rawCode = document.getElementById('custom-secret-input').value;
+        if(!candidates.includes(rawCode)) return;
+
+        const seed = Math.floor(Math.random() * 900) + 100;
+        const keystream = makeKeystream(seed, rawCode.length);
+        let encDigits = "";
+        for (let i = 0; i < rawCode.length; i++) {
+            encDigits += (parseInt(rawCode[i], 10) + keystream[i]) % 10;
+        }
+        const checksum = digitSum(rawCode);
+        const encrypted = `${seed}${encDigits}${checksum}`;
+
+        const outBox = document.getElementById('encrypted-output-container');
+        outBox.style.display = 'block';
+        outBox.style.borderColor = 'var(--info)';
+        outBox.style.color = 'var(--info)';
+        outBox.innerHTML = `Send this to your friend:<br><span style="font-size: 1.25rem; color: #fff; letter-spacing: 3px; user-select: all; cursor: copy;">${encrypted}</span>`;
+    }
+
+    function validateEncryptedCode() {
+        const val = document.getElementById('encrypted-secret-input').value;
+        const btn = document.getElementById('load-enc-btn');
+        if(val.length === codeLen + 4 && /^\d+$/.test(val)) {
+            btn.disabled = false;
+        } else {
+            btn.disabled = true;
+        }
+    }
+
+    function loadEncryptedCode() {
+        const val = document.getElementById('encrypted-secret-input').value;
+        if (val.length !== codeLen + 4) return;
+
+        const seed = parseInt(val.substring(0, 3), 10);
+        const encDigits = val.substring(3, 3 + codeLen);
+        const checksum = parseInt(val[val.length - 1], 10);
+        const keystream = makeKeystream(seed, codeLen);
+        let decrypted = "";
+        for (let i = 0; i < codeLen; i++) {
+            decrypted += (parseInt(encDigits[i], 10) - keystream[i] + 10) % 10;
+        }
+        if (digitSum(decrypted) !== checksum) {
+            alert("Invalid encrypted code! The checksum doesn't match — double-check for typos.");
+            return;
+        }
+
+        if(!candidates.includes(decrypted)) {
+            alert("Invalid encrypted code! Ensure your Code Length, Zero, and Repeats settings match your friend's game.");
+            return;
+        }
+        
+        secretCode = decrypted;
+        
+        document.getElementById('history-body').innerHTML = '';
+        clearAllInputs();
+        historyCount = 0;
+        gameIsWon = false;
+
+        revealedSums.clear();
+        revealedProducts.clear();
+        showAllLiveSums = false;
+        showAllLiveProds = false;
+        
+        const useZero = document.getElementById('toggle-zero').checked;
+        const allowRep = document.getElementById('toggle-repeats').checked;
+        const digits = useZero ? "0123456789" : "123456789";
+        candidates = [];
+        const generate = (str) => {
+            if (str.length === codeLen) { candidates.push(str); return; }
+            for (let d of digits) { if (!allowRep && str.includes(d)) continue; generate(str + d); }
+        };
+        generate("");
+
+        masterUniverse = [...candidates];
+        updateUI();
+
+        const outBox = document.getElementById('encrypted-output-container');
+        outBox.style.display = 'block';
+        outBox.style.borderColor = 'var(--success)';
+        outBox.style.color = 'var(--success)';
+        outBox.innerHTML = `Game Loaded! Good luck guessing your friend's code.`;
+        
+        document.getElementById('encrypted-secret-input').value = "";
+        document.getElementById('load-enc-btn').disabled = true;
+    }
+    // ------------------------------------
+
+    function toggleAnswersHidden() {
+        answersHidden = !answersHidden;
+        if (answersHidden) {
+            unhideBtn.innerText = "unhide answers";
+            unhideBtn.classList.remove("revealed");
+        } else {
+            unhideBtn.innerText = "hide answers";
+            unhideBtn.classList.add("revealed");
+        }
+        updateUI();
+    }
+
+    function getScores(guess, code) {
+        let pos = 0, num = 0;
+        let gArr = guess.split(''), cArr = code.split('');
+        for (let i = 0; i < codeLen; i++) {
+            if (gArr[i] === cArr[i]) { pos++; gArr[i] = cArr[i] = null; }
+        }
+        for (let i = 0; i < codeLen; i++) {
+            if (gArr[i] !== null) {
+                let idx = cArr.indexOf(gArr[i]);
+                if (idx !== -1) { num++; cArr[idx] = null; }
+            }
+        }
+        return { pos, num };
+    }
+
+    function getCodeMetrics(guess, currentPool, actualSecret) {
+        const distributionBuckets = {};
+        let truePathRemaining = 0;
+        const realScore = actualSecret ? getScores(guess, actualSecret) : null;
+
+        for (let i = 0; i < currentPool.length; i++) {
+            const score = getScores(guess, currentPool[i]);
+            const key = `${score.pos}_${score.num}`;
+            distributionBuckets[key] = (distributionBuckets[key] || 0) + 1;
+
+            if (realScore && score.pos === realScore.pos && score.num === realScore.num) {
+                truePathRemaining++;
+            }
+        }
+
+        let maxBucketSize = 0;
+        let entropy = 0;
+        const poolSize = currentPool.length;
+        for (let key in distributionBuckets) {
+            let count = distributionBuckets[key];
+            if (count > maxBucketSize) maxBucketSize = count;
+            let p = count / poolSize;
+            entropy -= p * Math.log2(p);
+        }
+
+        let worstCaseGuesses = poolSize > 1 ? Math.ceil(Math.log2(maxBucketSize)) + 1 : 1;
+        if (maxBucketSize <= 1) worstCaseGuesses = 1;
+
+        return { left: truePathRemaining, worst: worstCaseGuesses, entropy: parseFloat(entropy.toFixed(4)) };
+    }
+
+    function setSort(field) {
+        if (currentSortField === field) { currentSortAsc = !currentSortAsc; } 
+        else { currentSortField = field; currentSortAsc = field !== "entropy"; }
+        updateUI();
+    }
+
+    function updateSortHeadersUI() {
+        const columns = ["code", "left", "worst", "entropy"];
+        columns.forEach(col => {
+            const el = document.getElementById(`col-${col}`);
+            const dirEl = document.getElementById(`dir-${col}`);
+            if (el && dirEl) {
+                el.className = el.className.replace(" active", "").replace(" purple", "");
+                dirEl.innerText = "";
+                if (col === currentSortField) {
+                    el.className += " active";
+                    if (col === "entropy") el.className += " purple";
+                    dirEl.innerText = currentSortAsc ? "↑" : "↓";
+                }
+            }
+        });
+    }
+
+    function updatePositionMatrix() {
+        matrixContainer.innerHTML = '';
+        const matrix = {};
+        for(let d = 0; d <= 9; d++) matrix[d] = Array(codeLen).fill(false);
+        for(let i = 0; i < candidates.length; i++) {
+            const code = candidates[i];
+            for(let pos = 0; pos < codeLen; pos++) matrix[code[pos]][pos] = true;
+        }
+        const useZero = document.getElementById('toggle-zero').checked;
+        const startDigit = useZero ? 0 : 1;
+        for(let d = startDigit; d <= 9; d++) {
+            let rowString = "";
+            for(let pos = 0; pos < codeLen; pos++) rowString += matrix[d][pos] ? d : "_";
+            const item = document.createElement('div');
+            item.className = 'matrix-item';
+            item.innerHTML = `<span class="matrix-num">${d}:</span><span class="matrix-track">${rowString}</span>`;
+            matrixContainer.appendChild(item);
+        }
+    }
+
+    function updateFrequencyMatrix() {
+        frequencyContainer.innerHTML = '';
+        const freqMap = {};
+        for(let d = 0; d <= 9; d++) freqMap[d] = { 0: false, 1: false, 2: false, 3: false, 4: false };
+
+        for(let i = 0; i < candidates.length; i++) {
+            const code = candidates[i];
+            const counts = {};
+            for(let pos = 0; pos < codeLen; pos++) counts[code[pos]] = (counts[code[pos]] || 0) + 1;
+            for(let d = 0; d <= 9; d++) {
+                const count = counts[d] || 0;
+                if(count <= 4) freqMap[d][count] = true;
+            }
+        }
+
+        const useZero = document.getElementById('toggle-zero').checked;
+        const startDigit = useZero ? 0 : 1;
+        for(let d = startDigit; d <= 9; d++) {
+            let rowString = "";
+            for(let count = 0; count <= Math.min(codeLen, 4); count++) rowString += freqMap[d][count] ? count : "_";
+            const item = document.createElement('div');
+            item.className = 'matrix-item';
+            item.innerHTML = `<span class="matrix-num">${d}:</span><span class="matrix-track frequency">${rowString}</span>`;
+            frequencyContainer.appendChild(item);
+        }
+        return freqMap;
+    }
+
+    function updateBigramPairings() {
+        bigramContainer.innerHTML = '';
+        synergyContainer.innerHTML = '';
+        const pairsMap = {};
+
+        for(let i = 0; i < candidates.length; i++) {
+            const code = candidates[i];
+            for(let pos1 = 0; pos1 < codeLen; pos1++) {
+                for(let pos2 = pos1 + 1; pos2 < codeLen; pos2++) {
+                    let pattern = "";
+                    for(let idx = 0; idx < codeLen; idx++) {
+                        if (idx === pos1) pattern += code[pos1];
+                        else if (idx === pos2) pattern += code[pos2];
+                        else pattern += "_";
+                    }
+                    pairsMap[pattern] = (pairsMap[pattern] || 0) + 1;
+                }
+            }
+        }
+
+        const sortedBigrams = Object.keys(pairsMap).sort((a,b) => pairsMap[b] - pairsMap[a]);
+
+        if(sortedBigrams.length === 0) {
+            bigramContainer.innerHTML = `<div style="color:#64748b; font-style:italic; grid-column:span 3; text-align:center;">No active pairings available.</div>`;
+            synergyContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center;">No combinations found.</div>`;
+            return;
+        }
+
+        sortedBigrams.slice(0, 27).forEach(pattern => {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'bigram-item';
+            wrapper.innerHTML = `<span class="bi-pattern">${pattern}</span><span class="bi-count">(${pairsMap[pattern]})</span>`;
+            bigramContainer.appendChild(wrapper);
+        });
+
+        const synergies = [];
+        const topPairingsList = sortedBigrams.slice(0, 35); 
+
+        for (let i = 0; i < topPairingsList.length; i++) {
+            for (let j = i + 1; j < topPairingsList.length; j++) {
+                const p1 = topPairingsList[i];
+                const p2 = topPairingsList[j];
+                
+                let possibleMatch = true;
+                let mergedPattern = "";
+                
+                for (let x = 0; x < codeLen; x++) {
+                    const char1 = p1[x];
+                    const char2 = p2[x];
+                    
+                    if (char1 !== "_" && char2 !== "_") {
+                        if (char1 !== char2) { possibleMatch = false; break; } 
+                        else { mergedPattern += char1; } 
+                    } else if (char1 !== "_") {
+                        mergedPattern += char1;
+                    } else if (char2 !== "_") {
+                        mergedPattern += char2;
+                    } else {
+                        mergedPattern += "_";
+                    }
+                }
+                
+                if (possibleMatch) {
+                    let jointCount = 0;
+                    for (let c = 0; c < candidates.length; c++) {
+                        let matchesCombined = true;
+                        for (let x = 0; x < codeLen; x++) {
+                            if (mergedPattern[x] !== "_" && candidates[c][x] !== mergedPattern[x]) {
+                                matchesCombined = false; break;
+                            }
+                        }
+                        if (matchesCombined) jointCount++;
+                    }
+                    if (jointCount > 0) { synergies.push({ p1, p2, mergedPattern, count: jointCount }); }
+                }
+            }
+        }
+
+        synergies.sort((a, b) => b.count - a.count);
+
+        if (synergies.length === 0) {
+            synergyContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center;">No valid interlocking pairs found.</div>`;
+        } else {
+            synergies.slice(0, 20).forEach(syn => {
+                const div = document.createElement('div');
+                div.className = 'synergy-row';
+                div.innerHTML = `
+                    <span class="syn-combo">${syn.p1} + ${syn.p2}</span>
+                    <span class="syn-left">→</span>
+                    <span class="syn-result">${syn.mergedPattern}</span>
+                    <span class="syn-count">(${syn.count})</span>
+                `;
+                synergyContainer.appendChild(div);
+            });
+        }
+    }
+
+    function calculateLogicalDeductions(freqMap) {
+        deductionsContainer.innerHTML = '';
+        const useZero = document.getElementById('toggle-zero').checked;
+        const validDigits = useZero ? [0,1,2,3,4,5,6,7,8,9] : [1,2,3,4,5,6,7,8,9];
+        let rules = [], confirmedDigits = [], eliminatedDigits = [];
+
+        validDigits.forEach(d => {
+            const options = freqMap[d];
+            if (!options[0]) confirmedDigits.push(d);
+            if (options[0] && !options[1] && !options[2] && !options[3] && !options[4]) eliminatedDigits.push(d);
+
+            let possibleCounts = [];
+            for(let c=1; c<=codeLen; c++) { if(options[c]) possibleCounts.push(c); }
+            if (possibleCounts.length === 1 && !options[0]) {
+                rules.push(`<div class="rule-item confirmed">✅ <b>${d}</b> appears exactly ${possibleCounts[0]} time(s)</div>`);
+            }
+        });
+
+        if (confirmedDigits.length > 0 && historyCount > 0) rules.push(`<div class="rule-item confirmed">✅ Present: [ ${confirmedDigits.join(', ')} ]</div>`);
+        if (eliminatedDigits.length > 0 && historyCount > 0) rules.push(`<div class="rule-item eliminated">❌ Eliminated: [ ${eliminatedDigits.join(', ')} ]</div>`);
+
+        let ambiguousDigits = validDigits.filter(d => freqMap[d][0] && (freqMap[d][1] || freqMap[d][2]));
+        if (ambiguousDigits.length > 1 && ambiguousDigits.length <= 6 && historyCount > 0) {
+            let distributionGroupings = {};
+            candidates.forEach(code => {
+                let presentCount = 0;
+                ambiguousDigits.forEach(d => { if(code.includes(String(d))) presentCount++; });
+                distributionGroupings[presentCount] = true;
+            });
+            let pureGroupSizes = Object.keys(distributionGroupings).map(Number);
+            if(pureGroupSizes.length === 1) {
+                rules.push(`<div class="rule-item grouping">💡 Contains exactly <b>${pureGroupSizes[0]}</b> of: [ ${ambiguousDigits.join(', ')} ]</div>`);
+            }
+        }
+
+        if (rules.length === 0) {
+            deductionsContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center;">Make a guess to parse system rules.</div>`;
+        } else { rules.forEach(r => deductionsContainer.innerHTML += r); }
+    }
+
+    function renderProbabilityMatrix() {
+        headerRow.innerHTML = '<th class="prob-num">#</th>';
+        matrixBody.innerHTML = '';
+        for (let p = 1; p <= codeLen; p++) headerRow.innerHTML += `<th>P${p}</th>`;
+
+        const poolSize = candidates.length;
+        const useZero = document.getElementById('toggle-zero').checked;
+        const startDigit = useZero ? 0 : 1;
+
+        for (let d = startDigit; d <= 9; d++) {
+            const strDigit = String(d);
+            let rowHtml = `<td class="prob-num">${d}</td>`;
+            
+            for (let pos = 0; pos < codeLen; pos++) {
+                let matchesThisCellFilter = [];
+                for (let i = 0; i < poolSize; i++) {
+                    if (candidates[i][pos] === strDigit) { matchesThisCellFilter.push(candidates[i]); }
+                }
+
+                let remainingGuessesNextRound = 0;
+                if (matchesThisCellFilter.length > 0) {
+                    let sampleTestGuess = matchesThisCellFilter[0];
+                    let trueScoreSignature = getScores(sampleTestGuess, secretCode);
+
+                    for (let j = 0; j < poolSize; j++) {
+                        let compScore = getScores(sampleTestGuess, candidates[j]);
+                        if (compScore.pos === trueScoreSignature.pos && compScore.num === trueScoreSignature.num) { remainingGuessesNextRound++; }
+                    }
+                }
+
+                let displayValue = remainingGuessesNextRound;
+                let styleClass = "p-zero";
+                
+                if (matchesThisCellFilter.length === 0) {
+                    displayValue = "-"; styleClass = "p-zero";
+                } else if (remainingGuessesNextRound === 1) { styleClass = "p-high"; 
+                } else if (remainingGuessesNextRound > 0 && remainingGuessesNextRound <= Math.ceil(poolSize * 0.25)) { styleClass = "p-med";  
+                } else { styleClass = "p-low"; }
+
+                rowHtml += `<td class="${styleClass}">${displayValue}</td>`;
+            }
+            const tr = document.createElement('tr');
+            tr.innerHTML = rowHtml;
+            matrixBody.appendChild(tr);
+        }
+    }
+
+    function renderOptimizedBadGuesses() {
+        badGuessesContainer.innerHTML = '';
+        if (historyCount === 0 || candidates.length <= 1 || gameIsWon) {
+            badGuessesContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center; font-size:0.8rem; padding: 4px 0;">Requires active gameplay filter space to calculate.</div>`;
+            return;
+        }
+
+        let badGuessesPool = masterUniverse.filter(code => !candidates.includes(code));
+        if (badGuessesPool.length === 0) {
+            badGuessesContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center; font-size:0.8rem; padding: 4px 0;">No eliminated options found.</div>`;
+            return;
+        }
+
+        let evaluatedBadGuesses = [];
+        const poolSize = candidates.length;
+        const step = badGuessesPool.length > 1200 ? Math.ceil(badGuessesPool.length / 500) : 1;
+
+        for (let i = 0; i < badGuessesPool.length; i += step) {
+            let badCode = badGuessesPool[i];
+            let metrics = getCodeMetrics(badCode, candidates, secretCode);
+            let optionsEliminated = poolSize - metrics.left;
+
+            evaluatedBadGuesses.push({ code: badCode, eliminated: optionsEliminated, remaining: metrics.left });
+        }
+
+        evaluatedBadGuesses.sort((a, b) => b.eliminated - a.eliminated || a.remaining - b.remaining);
+        let topBadGuesses = evaluatedBadGuesses.slice(0, 200);
+
+        topBadGuesses.forEach(item => {
+            const div = document.createElement('div');
+            div.className = 'bad-guess-item';
+            div.innerHTML = `
+                <span class="bg-code">${item.code}</span>
+                <span class="bg-elim">-${item.eliminated} choices</span>
+                <span class="bg-remain">leaves ${item.remaining}</span>
+            `;
+            badGuessesContainer.appendChild(div);
+        });
+    }
+
+    function getOrdinalSuffix(i) {
+        let j = i % 10, k = i % 100;
+        if (j === 1 && k !== 11) return i + "st";
+        if (j === 2 && k !== 12) return i + "nd";
+        if (j === 3 && k !== 13) return i + "rd";
+        return i + "th";
+    }
+
+    function validateInput() {
+        if (gameIsWon) return;
+        const val = input.value;
+        const useZero = document.getElementById('toggle-zero').checked;
+        const allowRep = document.getElementById('toggle-repeats').checked;
+        const hardMode = document.getElementById('toggle-hard').checked;
+        
+        const strippedContent = val.replace(/\s/g, '');
+        const allBoxes = splitContainer.querySelectorAll('.digit-box');
+
+        if (strippedContent.length === codeLen && /^\d+$/.test(strippedContent)) {
+            const hasInvalidZero = !useZero && strippedContent.includes('0');
+            const hasIllegalRep = !allowRep && (new Set(strippedContent).size !== strippedContent.length);
+
+            if (!hasInvalidZero && !hasIllegalRep) {
+                const isViable = candidates.includes(strippedContent);
+                
+                input.className = isViable ? 'viable' : 'impossible';
+                allBoxes.forEach(b => b.className = isViable ? 'digit-box viable' : 'digit-box impossible');
+
+                let trackingRankMessage = "";
+                if (candidates.length <= 1500) {
+                    let evaluatedList = [];
+                    for(let i = 0; i < candidates.length; i++) {
+                        let scoreMetric = getCodeMetrics(candidates[i], candidates, null);
+                        evaluatedList.push({ code: candidates[i], entropy: scoreMetric.entropy });
+                    }
+                    
+                    evaluatedList.sort((a,b) => b.entropy - a.entropy);
+                    let targetEntropy = getCodeMetrics(strippedContent, candidates, null).entropy;
+
+                    let strictlyBetterCount = evaluatedList.filter(item => item.entropy > targetEntropy).length;
+                    let competitionRank = strictlyBetterCount + 1;
+
+                    let tiedCount = evaluatedList.filter(item => Math.abs(item.entropy - targetEntropy) < 0.0001).length;
+
+                    let rankDisplayString = "";
+                    if (tiedCount > 1) {
+                        let maxRankRange = competitionRank + tiedCount - 1;
+                        rankDisplayString = `Tied ${getOrdinalSuffix(competitionRank)}-${getOrdinalSuffix(maxRankRange)}`;
+                    } else { rankDisplayString = getOrdinalSuffix(competitionRank); }
+
+                    trackingRankMessage = `<div style="font-size:0.75rem; color:#94a3b8; margin-top:3px;">
+                        Rank: <b style="color:var(--purple)">${rankDisplayString}</b> best out of <b>${candidates.length}</b> choices (Gain: ${targetEntropy.toFixed(2)} bits)
+                    </div>`;
+                }
+
+                if (isViable) { label.innerHTML = `<div><span style="color:var(--success)">✓ Possible Solution</span></div>${trackingRankMessage}`;
+                } else { label.innerHTML = `<div><span style="color:var(--warning)">⚠ Eliminated Option</span></div>${trackingRankMessage}`; }
+                
+                submitBtn.disabled = !(isViable || hardMode);
+                return;
+            }
+        }
+
+        input.className = ''; 
+        allBoxes.forEach(b => b.className = 'digit-box');
+        label.innerHTML = ''; 
+        submitBtn.disabled = true;
+    }
+
+    function processGuess(e) {
+        if(e) { e.preventDefault(); }
+        if (gameIsWon) return;
+        const guess = input.value.replace(/\s/g, '');
+        if (guess.length !== codeLen || submitBtn.disabled) return;
+        
+        // --- ADVERSARIAL MODE LOGIC ---
+        const isAdversarial = document.getElementById('toggle-adversarial').checked;
+        if (isAdversarial && candidates.length > 1) {
+            let groups = {};
+            for (let i = 0; i < candidates.length; i++) {
+                let score = getScores(guess, candidates[i]);
+                let key = score.pos + "_" + score.num;
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(candidates[i]);
+            }
+            
+            let maxGroup = [];
+            for (let key in groups) {
+                if (groups[key].length > maxGroup.length) {
+                    maxGroup = groups[key];
+                }
+            }
+            
+            // Re-assign secret code dynamically from the largest remaining cluster
+            secretCode = maxGroup[Math.floor(Math.random() * maxGroup.length)];
+        }
+        // ------------------------------
+
+        const result = getScores(guess, secretCode);
+        historyCount++;
+        
+        const totalCorrectVal = result.pos + result.num;
+        const insidePositionVal = result.pos;
+        
+        const previousLength = candidates.length;
+        
+        candidates = candidates.filter(c => {
+            const t = getScores(guess, c);
+            return t.pos === result.pos && t.num === result.num;
+        });
+        
+        const newLength = candidates.length;
+        const ratio = newLength > 0 ? (previousLength / newLength).toFixed(2) + 'x' : '∞';
+        
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.innerHTML = `
+            <div>${historyCount}</div>
+            <div style="font-weight:bold; color:var(--accent); text-align: left; font-family:monospace;">${guess}</div>
+            <div style="color:var(--text); font-weight:500;">${totalCorrectVal}</div>
+            <div style="color:var(--info); font-weight:600;">${insidePositionVal}</div>
+            <div style="color:var(--success); font-weight:500;">${newLength}</div>
+            <div style="color:var(--warning); font-weight:500;">${ratio}</div>
+        `;
+        document.getElementById('history-body').prepend(row);
+        
+        clearAllInputs();
+        input.blur();
+        
+        if (result.pos === codeLen) {
+            gameIsWon = true;
+            submitBtn.disabled = true;
+            const turnLabel = historyCount === 1 ? "try" : "tries";
+            label.innerHTML = `<div><span style="color:var(--success); font-size: 1.15rem; font-weight: bold;">🎉 Code Solved in ${historyCount} ${turnLabel}!</span></div>`;
+            document.getElementById('count-display').innerText = "0";
+            badGuessesContainer.innerHTML = `<div style="color:#64748b; font-style:italic; text-align:center; font-size:0.8rem; padding: 4px 0;">Game over. Engine completed.</div>`;
+            return;
+        }
+        
+        updateUI();
+    }
+
+    function updateUI() {
+        if (gameIsWon) return;
+        document.getElementById('count-display').innerText = candidates.length.toLocaleString();
+        listContainer.innerHTML = '';
+
+        updatePositionMatrix();
+        const freqMap = updateFrequencyMatrix();
+        updateBigramPairings();
+        calculateLogicalDeductions(freqMap);
+        renderProbabilityMatrix();
+        renderOptimizedBadGuesses();
+        updateSortHeadersUI();
+        renderSuggestions();
+        updateComboValidityIndicators();
+        updateMultTableHighlights();
+
+        let calculatedList = [];
+        if (candidates.length < 1200) {
+            for(let i = 0; i < candidates.length; i++) {
+                const code = candidates[i];
+                const metrics = getCodeMetrics(code, candidates, secretCode);
+                calculatedList.push({ code, left: metrics.left, worst: metrics.worst, entropy: metrics.entropy });
+            }
+            
+            calculatedList.sort((a, b) => {
+                let primaryEval = 0;
+                if (currentSortField === "code") { primaryEval = a.code.localeCompare(b.code); } 
+                else if (currentSortField === "left") { primaryEval = a.left - b.left; } 
+                else if (currentSortField === "worst") { primaryEval = a.worst - b.worst; } 
+                else if (currentSortField === "entropy") { primaryEval = a.entropy - b.entropy; }
+                
+                if (primaryEval === 0) { return a.code.localeCompare(b.code); }
+                return currentSortAsc ? primaryEval : -primaryEval;
+            });
+        } else {
+            calculatedList = candidates.map(code => ({ code, left: '?', worst: '?', entropy: '?' }));
+        }
+
+        const visibleSlice = calculatedList.slice(0, 100);
+        visibleSlice.forEach(item => {
+            const displayLeft = item.left === '?' ? '?' : `rem: ${item.left}`;
+            const displayWorst = item.worst === '?' ? '?' : `≤ ${item.worst}`;
+            const displayEnt = item.entropy === '?' ? '?' : `${item.entropy.toFixed(2)} b`;
+            
+            const displayCode = answersHidden ? "*".repeat(codeLen) : item.code;
+            const codeClass = answersHidden ? "c-code hidden-mask" : "c-code";
+
+            const domElement = document.createElement('div');
+            domElement.className = 'candidate-item';
+            domElement.innerHTML = `
+                <span class="${codeClass}">${displayCode}</span>
+                <span class="c-risk">${displayLeft}</span>
+                <span class="c-worst">${displayWorst}</span>
+                <span class="c-entropy">${displayEnt}</span>
+            `;
+            listContainer.appendChild(domElement);
+        });
+
+        if (candidates.length > 100) {
+            const domElement = document.createElement('div');
+            domElement.className = 'candidate-item';
+            domElement.style.display = 'block';
+            domElement.style.textAlign = 'center';
+            domElement.style.color = '#475569';
+            domElement.innerText = `...and ${(candidates.length - 100)} more choices`;
+            listContainer.appendChild(domElement);
+        }
+
+        validateInput();
+    }
+
+    input.addEventListener('input', () => { syncMasterToSplit(); validateInput(); });
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') { processGuess(e); } });
+    submitBtn.addEventListener('click', processGuess);
+
+    buildMultiplicationTable();
+    newGame();
+</script>
+</body>
+</html>
