@@ -5,28 +5,21 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hexxagon Fair-Symmetry Pro</title>
 <script>
-        async function verifyAccess() {
-            const urlParams = new URLSearchParams(window.location.search);
-            const sessionId = urlParams.get('session_id');
-
-            if (!sessionId || urlParams.get('unlocked') === 'true') {
-                window.location.href = 'index.html';
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/verify-payment?session_id=${sessionId}`);
-                const data = await response.json();
-
-                if (!data.success) {
-                    window.location.href = 'index.html';
-                }
-            } catch (err) {
+    async function verifyAccess() {
+        try {
+            const response = await fetch('/api/verify-auth');
+            const data = await response.json();
+            if (!data.success) {
                 window.location.href = 'index.html';
             }
+        } catch (err) {
+            window.location.href = 'index.html';
         }
-        verifyAccess();
-    </script>
+    }
+    verifyAccess();
+</script>
+
+    
     <style>
         :root {
             --bg-color: #0f0f13;
