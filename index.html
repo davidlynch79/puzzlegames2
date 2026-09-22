@@ -24,18 +24,24 @@
     async function loginUser() {
         const email = document.getElementById('loginEmail').value;
         const errorEl = document.getElementById('loginError');
+        errorEl.innerText = "Logging in...";
 
-        const response = await fetch('/api/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email })
-        });
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email })
+            });
 
-        const data = await response.json();
-        if (data.success) {
-            window.location.href = 'mastermind1.html'; // Redirect to games
-        } else {
-            errorEl.innerText = data.error || 'Login failed';
+            const data = await response.json();
+            
+            if (data.success) {
+                window.location.href = 'mastermind1.html'; // Redirect to games
+            } else {
+                errorEl.innerText = "Error: " + (data.error || 'Login failed');
+            }
+        } catch (err) {
+            errorEl.innerText = "Network or server error occurred.";
         }
     }
 </script>
