@@ -11,21 +11,21 @@
     <!-- PAYMENT VERIFICATION PROTECTION -->
 
 <script>
-    async function verifyAccess() {
+    document.addEventListener("DOMContentLoaded", async function() {
         try {
-            const response = await fetch('/api/verify-auth');
+            const response = await fetch('/api/verify-auth', { method: 'GET' });
             const data = await response.json();
+            
             if (!data.success) {
-                // If not authenticated, bounce back to home
+                console.warn("Auth check failed, redirecting to home.");
                 window.location.href = 'index.html';
             }
         } catch (err) {
+            console.error("Network error during auth check:", err);
             window.location.href = 'index.html';
         }
-    }
-    verifyAccess();
+    });
 </script>
-
 
 
 
