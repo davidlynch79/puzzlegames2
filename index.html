@@ -13,6 +13,33 @@
     <div class="container">
         <h1>🧩 Puzzle Arcade All-Access</h1>
 
+        <div class="login-section">
+    <h3>Subscriber Login</h3>
+    <input type="email" id="loginEmail" placeholder="Enter your subscriber email">
+    <button onclick="loginUser()">Log In & Play</button>
+    <p id="loginError" style="color: red;"></p>
+</div>
+
+<script>
+    async function loginUser() {
+        const email = document.getElementById('loginEmail').value;
+        const errorEl = document.getElementById('loginError');
+
+        const response = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            window.location.href = 'mastermind1.html'; // Redirect to games
+        } else {
+            errorEl.innerText = data.error || 'Login failed';
+        }
+    }
+</script>
+
 <p>Already have a subscription?</p>
 <a href="https://billing.stripe.com/p/login/28E3cw71z3cw5Sg8qj3gk00" class="login-btn">Subscriber Login</a>
 
