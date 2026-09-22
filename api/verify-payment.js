@@ -1,3 +1,6 @@
+
+
+
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
 module.exports = async (req, res) => {
@@ -8,15 +11,21 @@ module.exports = async (req, res) => {
     }
 
     try {
-        // Query Stripe directly to verify the session
-        const session = await stripe.checkout.sessions.retrieve(session_id);
+        // Retrieve the checkout session from Stripe
+        const session = await stripe.checkout.sessions.retrieve(session_id, {
+            expand: ['subscription'] // Expand the subscription object
+        });
 
-        if (session && session.payment_status === 'paid') {
-            return.status(200).json({ success: true });
-        } else {
-            return.status(403).json({ success: false, error: 'Not paid' });
+        // Check if the session mode was a subscription and if it's active
+        if (session && session.mode === 'subscription') {
+            const subscription = session.subscription;
+            if (subscription && subscription.status === 'active') {
+                return res.status(200).json({ success: true });
+            }
         }
+
+        return res.status(403).json({ success: false, error: 'Subscription not active' });
     } catch (error) {
-        return.status(500).json({ success: false, error: 'Invalid session' });
+        return res.status(500).json({ success: false, error: 'Invalid session' });
     }
 };
