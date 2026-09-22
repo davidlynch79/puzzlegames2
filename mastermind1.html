@@ -16,6 +16,7 @@
             const response = await fetch('/api/verify-auth');
             const data = await response.json();
             if (!data.success) {
+                // If not authenticated, bounce back to home
                 window.location.href = 'index.html';
             }
         } catch (err) {
