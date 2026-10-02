@@ -1,0 +1,818 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script src="member-gate.js"></script>
+    <style>html.gated, html.gated body { overflow: hidden !important; }</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Concept Map - Data Tools</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, monospace;
+      background: #0d1b2a;
+      color: #e0e6ed;
+      overflow: hidden;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    #toolbar {
+      background: #1b263b;
+      border-bottom: 1px solid #415a77;
+      padding: 6px 12px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+      z-index: 100;
+      font-size: 12px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.4);
+    }
+    .tool-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: #0d1b2a;
+      padding: 4px 8px;
+      border: 1px solid #415a77;
+    }
+    input[type="text"] {
+      background: #1b263b;
+      border: 1px solid #778da9;
+      color: #fff;
+      padding: 4px 6px;
+      font-size: 12px;
+      font-family: monospace;
+      outline: none;
+      width: 140px;
+    }
+    input[type="text"]:focus {
+      border-color: #00b4d8;
+    }
+    button {
+      background: #415a77;
+      border: 1px solid #778da9;
+      color: #e0e6ed;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-family: monospace;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    button:hover {
+      background: #0077b6;
+      color: #fff;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+      font-size: 11px;
+      color: #e0e6ed;
+    }
+    input[type="checkbox"] {
+      cursor: pointer;
+      accent-color: #00b4d8;
+    }
+    input[type="color"] {
+      border: none;
+      width: 22px;
+      height: 22px;
+      cursor: pointer;
+      background: transparent;
+    }
+    select {
+      background: #1b263b;
+      border: 1px solid #778da9;
+      color: #fff;
+      padding: 3px 4px;
+      font-size: 11px;
+      font-family: monospace;
+      outline: none;
+    }
+    #viewport {
+      flex: 1;
+      position: relative;
+      background-color: #0b132b;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+      background-size: 20px 20px;
+      overflow: hidden;
+    }
+
+    /* Draggable & Resizable Timeline Container */
+    #timeline-container {
+      position: absolute;
+      top: 50px;
+      left: 50px;
+      width: 700px;
+      height: 55px;
+      background: rgba(27, 38, 59, 0.7);
+      border: 1px dashed #778da9;
+      z-index: 1;
+      cursor: move;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 4px 10px 4px 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    #timeline-container.hidden {
+      display: none;
+    }
+    .timeline-title {
+      position: absolute;
+      top: 2px;
+      left: 6px;
+      font-size: 9px;
+      font-family: monospace;
+      color: #778da9;
+      letter-spacing: 1px;
+      pointer-events: none;
+    }
+    .timeline-axis {
+      position: absolute;
+      bottom: 18px;
+      left: 10px;
+      right: 15px;
+      height: 2px;
+      background: rgba(0, 180, 216, 0.5);
+      pointer-events: none;
+    }
+    .timeline-tick {
+      position: absolute;
+      bottom: 18px;
+      width: 1px;
+      height: 8px;
+      background: rgba(0, 180, 216, 0.7);
+      pointer-events: none;
+    }
+    .timeline-label {
+      position: absolute;
+      bottom: 2px;
+      transform: translateX(-50%);
+      font-size: 9px;
+      font-family: monospace;
+      color: #90e0ef;
+      white-space: nowrap;
+      pointer-events: none;
+    }
+    .timeline-resize-handle {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: 10px;
+      background: rgba(65, 90, 119, 0.6);
+      border-left: 1px solid #778da9;
+      cursor: e-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      color: #e0e6ed;
+    }
+    .timeline-resize-handle:hover {
+      background: #00b4d8;
+    }
+
+    #svg-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+    #svg-layer path {
+      pointer-events: stroke;
+      cursor: pointer;
+    }
+
+    .node {
+      position: absolute;
+      background: #1c2541;
+      border: 1px solid #48cae4;
+      color: #ffffff;
+      padding: 3px 6px;
+      font-family: monospace;
+      font-size: 11px;
+      white-space: nowrap;
+      cursor: move;
+      border-radius: 0 !important;
+      box-shadow: 2px 2px 6px rgba(0,0,0,0.6);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      z-index: 10;
+    }
+    .node.selected {
+      border-color: #00f5d4;
+      box-shadow: 0 0 0 2px rgba(0, 245, 212, 0.5);
+    }
+    .node .delete-btn {
+      display: none;
+      color: #ff4d6d;
+      cursor: pointer;
+      font-weight: bold;
+      padding: 0 2px;
+    }
+    .node:hover .delete-btn {
+      display: inline;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toolbar">
+    <div class="tool-group">
+      <input type="text" id="node-text" placeholder="Box text..." />
+      <button id="add-btn">Add Box</button>
+    </div>
+
+    <div class="tool-group">
+      <label><input type="checkbox" id="show-timeline-chk" checked> Timeline Overlay</label>
+      <label><input type="checkbox" id="create-line-chk"> Create Line</label>
+      <label><input type="checkbox" id="drag-graph-chk"> Drag Graph</label>
+    </div>
+
+    <div class="tool-group">
+      <label>Arrow:
+        <select id="arrow-style">
+          <option value="end">End (->)</option>
+          <option value="both">Both (<->)</option>
+          <option value="start">Start (<-)</option>
+          <option value="none">None (--)</option>
+        </select>
+      </label>
+      <label>Color: <input type="color" id="line-color" value="#00b4d8"></label>
+    </div>
+
+    <div class="tool-group">
+      <button id="undo-btn" disabled>Undo</button>
+      <button id="redo-btn" disabled>Redo</button>
+    </div>
+
+    <div class="tool-group">
+      <button id="export-btn">Export</button>
+      <button id="import-btn">Import</button>
+      <input type="file" id="import-file" accept=".json" style="display:none">
+      <button id="clear-btn">Clear</button>
+    </div>
+  </div>
+
+  <div id="viewport">
+    <!-- Draggable & Resizable Timeline -->
+    <div id="timeline-container">
+      <span class="timeline-title">1-YEAR TIMELINE</span>
+      <div class="timeline-axis"></div>
+      <div class="timeline-resize-handle">â‹®</div>
+    </div>
+
+    <svg id="svg-layer">
+      <defs></defs>
+    </svg>
+  </div>
+
+  <script>
+    const viewport = document.getElementById('viewport');
+    const svgLayer = document.getElementById('svg-layer');
+    const svgDefs = svgLayer.querySelector('defs');
+    const timelineContainer = document.getElementById('timeline-container');
+    const timelineResizeHandle = timelineContainer.querySelector('.timeline-resize-handle');
+
+    const nodeTextInput = document.getElementById('node-text');
+    const addBtn = document.getElementById('add-btn');
+    const showTimelineChk = document.getElementById('show-timeline-chk');
+    const createLineChk = document.getElementById('create-line-chk');
+    const dragGraphChk = document.getElementById('drag-graph-chk');
+    const arrowStyleSelect = document.getElementById('arrow-style');
+    const lineColorPicker = document.getElementById('line-color');
+
+    const undoBtn = document.getElementById('undo-btn');
+    const redoBtn = document.getElementById('redo-btn');
+    const exportBtn = document.getElementById('export-btn');
+    const importBtn = document.getElementById('import-btn');
+    const importFileInput = document.getElementById('import-file');
+    const clearBtn = document.getElementById('clear-btn');
+
+    let state = {
+      nodes: [],
+      lines: [],
+      showTimeline: true,
+      timelinePos: { x: 50, y: 50, width: 700 }
+    };
+
+    let historyStack = [];
+    let historyIndex = -1;
+
+    let selectedSourceNode = null;
+    let draggingNode = null;
+    let draggingTimeline = false;
+    let resizingTimeline = false;
+    let dragOffset = { x: 0, y: 0 };
+    let initialPositions = new Map();
+
+    const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    function generateId() {
+      return 'id_' + Math.random().toString(36).substr(2, 9);
+    }
+
+    // --- TIMELINE OVERLAY GENERATION ---
+    function updateTimelineTicks() {
+      const now = new Date();
+      const currentMonthIndex = now.getMonth();
+      const currentYearShort = String(now.getFullYear()).slice(-2);
+      const nextYearShort = String(now.getFullYear() + 1).slice(-2);
+
+      timelineContainer.querySelectorAll('.timeline-tick, .timeline-label').forEach(e => e.remove());
+
+      const paddingLeft = 10;
+      const paddingRight = 15;
+      const usableWidth = state.timelinePos.width - paddingLeft - paddingRight;
+
+      for (let i = 0; i <= 12; i++) {
+        const xPos = paddingLeft + (i / 12) * usableWidth;
+
+        const tick = document.createElement('div');
+        tick.className = 'timeline-tick';
+        tick.style.left = xPos + 'px';
+        timelineContainer.appendChild(tick);
+
+        if (i < 12) {
+          const label = document.createElement('div');
+          label.className = 'timeline-label';
+          label.style.left = (xPos + (usableWidth / 24)) + 'px';
+
+          const monthIdx = (currentMonthIndex + i) % 12;
+          const yearVal = (currentMonthIndex + i >= 12) ? nextYearShort : currentYearShort;
+          label.textContent = `${MONTHS[monthIdx]} '${yearVal}`;
+
+          timelineContainer.appendChild(label);
+        }
+      }
+    }
+
+    // --- HISTORY CONTROL ---
+    function saveState() {
+      historyStack = historyStack.slice(0, historyIndex + 1);
+      historyStack.push(JSON.stringify(state));
+      if (historyStack.length > 50) historyStack.shift();
+      else historyIndex++;
+      updateHistoryButtons();
+    }
+
+    function updateHistoryButtons() {
+      undoBtn.disabled = historyIndex <= 0;
+      redoBtn.disabled = historyIndex >= historyStack.length - 1;
+    }
+
+    function undo() {
+      if (historyIndex > 0) {
+        historyIndex--;
+        state = JSON.parse(historyStack[historyIndex]);
+        render();
+        updateHistoryButtons();
+      }
+    }
+
+    function redo() {
+      if (historyIndex < historyStack.length - 1) {
+        historyIndex++;
+        state = JSON.parse(historyStack[historyIndex]);
+        render();
+        updateHistoryButtons();
+      }
+    }
+
+    // --- NODE CREATION ---
+    function createBox() {
+      const text = nodeTextInput.value.trim() || 'Node';
+      const count = state.nodes.length;
+      const x = 80 + (count % 10) * 20;
+      const y = 140 + (count % 10) * 20;
+
+      const node = {
+        id: generateId(),
+        text: text,
+        x: x,
+        y: y
+      };
+
+      state.nodes.push(node);
+      nodeTextInput.value = '';
+      saveState();
+      render();
+    }
+
+    // --- RENDER ENGINE ---
+    function render() {
+      // Toggle Timeline Container visibility & set position/size
+      if (state.showTimeline) {
+        timelineContainer.classList.remove('hidden');
+        timelineContainer.style.left = state.timelinePos.x + 'px';
+        timelineContainer.style.top = state.timelinePos.y + 'px';
+        timelineContainer.style.width = state.timelinePos.width + 'px';
+        showTimelineChk.checked = true;
+        updateTimelineTicks();
+      } else {
+        timelineContainer.classList.add('hidden');
+        showTimelineChk.checked = false;
+      }
+
+      // Clear existing Nodes & Lines DOM
+      document.querySelectorAll('.node').forEach(el => el.remove());
+      svgLayer.querySelectorAll('path').forEach(el => el.remove());
+
+      // Render Nodes
+      state.nodes.forEach(node => {
+        const el = document.createElement('div');
+        el.className = 'node';
+        if (selectedSourceNode && selectedSourceNode.id === node.id) {
+          el.classList.add('selected');
+        }
+        el.style.left = node.x + 'px';
+        el.style.top = node.y + 'px';
+        el.dataset.id = node.id;
+
+        const textSpan = document.createElement('span');
+        textSpan.textContent = node.text;
+        el.appendChild(textSpan);
+
+        const delBtn = document.createElement('span');
+        delBtn.className = 'delete-btn';
+        delBtn.innerHTML = '&times;';
+        delBtn.onclick = (e) => {
+          e.stopPropagation();
+          deleteNode(node.id);
+        };
+        el.appendChild(delBtn);
+
+        // Double-click inline text edit
+        el.ondblclick = (e) => {
+          e.stopPropagation();
+          const newText = prompt("Edit box text:", node.text);
+          if (newText !== null && newText.trim() !== "") {
+            node.text = newText.trim();
+            saveState();
+            render();
+          }
+        };
+
+        el.onmousedown = (e) => handleMouseDown(e, node);
+        viewport.appendChild(el);
+      });
+
+      // Render Lines
+      state.lines.forEach(line => renderLine(line));
+    }
+
+    function renderLine(line) {
+      const sourceNode = state.nodes.find(n => n.id === line.from);
+      const targetNode = state.nodes.find(n => n.id === line.to);
+      if (!sourceNode || !targetNode) return;
+
+      const sourceRect = getNodeRect(sourceNode);
+      const targetRect = getNodeRect(targetNode);
+
+      const p1 = { x: sourceRect.x + sourceRect.width / 2, y: sourceRect.y + sourceRect.height / 2 };
+      const p2 = { x: targetRect.x + targetRect.width / 2, y: targetRect.y + targetRect.height / 2 };
+
+      const clipP1 = clipLineWithRect(p2, p1, sourceRect);
+      const clipP2 = clipLineWithRect(p1, p2, targetRect);
+
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", `M ${clipP1.x} ${clipP1.y} L ${clipP2.x} ${clipP2.y}`);
+      path.setAttribute("stroke", line.color || "#00b4d8");
+      path.setAttribute("stroke-width", "2");
+      path.setAttribute("fill", "none");
+
+      const markerColor = (line.color || "#00b4d8").replace('#', '');
+      if (line.arrow === 'end' || line.arrow === 'both') {
+        ensureMarker(markerColor, 'end');
+        path.setAttribute("marker-end", `url(#arrow-end-${markerColor})`);
+      }
+      if (line.arrow === 'start' || line.arrow === 'both') {
+        ensureMarker(markerColor, 'start');
+        path.setAttribute("marker-start", `url(#arrow-start-${markerColor})`);
+      }
+
+      path.onclick = (e) => {
+        e.stopPropagation();
+        if (confirm("Delete this line connection?")) {
+          state.lines = state.lines.filter(l => l.id !== line.id);
+          saveState();
+          render();
+        }
+      };
+
+      svgLayer.appendChild(path);
+    }
+
+    function ensureMarker(colorHex, type) {
+      const markerId = `arrow-${type}-${colorHex}`;
+      if (!document.getElementById(markerId)) {
+        const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
+        marker.setAttribute("id", markerId);
+        marker.setAttribute("viewBox", "0 0 10 10");
+        marker.setAttribute("refX", type === 'end' ? "8" : "2");
+        marker.setAttribute("refY", "5");
+        marker.setAttribute("markerWidth", "6");
+        marker.setAttribute("markerHeight", "6");
+        marker.setAttribute("orient", "auto");
+
+        const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+        path.setAttribute("d", type === 'end' ? "M 0 1 L 10 5 L 0 9 z" : "M 10 1 L 0 5 L 10 9 z");
+        path.setAttribute("fill", `#${colorHex}`);
+        marker.appendChild(path);
+        svgDefs.appendChild(marker);
+      }
+    }
+
+    // --- RECT & MATH CALCULATIONS ---
+    function getNodeRect(node) {
+      const el = document.querySelector(`[data-id="${node.id}"]`);
+      if (el) {
+        const bbox = el.getBoundingClientRect();
+        const vpBox = viewport.getBoundingClientRect();
+        return {
+          x: bbox.left - vpBox.left,
+          y: bbox.top - vpBox.top,
+          width: bbox.width,
+          height: bbox.height
+        };
+      }
+      return { x: node.x, y: node.y, width: 60, height: 20 };
+    }
+
+    function clipLineWithRect(p1, p2, rect) {
+      const dx = p2.x - p1.x;
+      const dy = p2.y - p1.y;
+      let tMin = 1;
+
+      if (dx !== 0) {
+        const tLeft = (rect.x - p1.x) / dx;
+        if (tLeft >= 0 && tLeft <= 1) {
+          const y = p1.y + tLeft * dy;
+          if (y >= rect.y && y <= rect.y + rect.height) tMin = Math.min(tMin, tLeft);
+        }
+        const tRight = (rect.x + rect.width - p1.x) / dx;
+        if (tRight >= 0 && tRight <= 1) {
+          const y = p1.y + tRight * dy;
+          if (y >= rect.y && y <= rect.y + rect.height) tMin = Math.min(tMin, tRight);
+        }
+      }
+      if (dy !== 0) {
+        const tTop = (rect.y - p1.y) / dy;
+        if (tTop >= 0 && tTop <= 1) {
+          const x = p1.x + tTop * dx;
+          if (x >= rect.x && x <= rect.x + rect.width) tMin = Math.min(tMin, tTop);
+        }
+        const tBottom = (rect.y + rect.height - p1.y) / dy;
+        if (tBottom >= 0 && tBottom <= 1) {
+          const x = p1.x + tBottom * dx;
+          if (x >= rect.x && x <= rect.x + rect.width) tMin = Math.min(tMin, tBottom);
+        }
+      }
+
+      return { x: p1.x + tMin * dx, y: p1.y + tMin * dy };
+    }
+
+    // --- INTERACTION & DRAG ENGINE ---
+    function handleMouseDown(e, node) {
+      if (createLineChk.checked) {
+        if (!selectedSourceNode) {
+          selectedSourceNode = node;
+          render();
+        } else if (selectedSourceNode.id !== node.id) {
+          state.lines.push({
+            id: generateId(),
+            from: selectedSourceNode.id,
+            to: node.id,
+            arrow: arrowStyleSelect.value,
+            color: lineColorPicker.value
+          });
+          selectedSourceNode = null;
+          saveState();
+          render();
+        } else {
+          selectedSourceNode = null;
+          render();
+        }
+        return;
+      }
+
+      draggingNode = node;
+      dragOffset.x = e.clientX - node.x;
+      dragOffset.y = e.clientY - node.y;
+
+      initialPositions.clear();
+      if (dragGraphChk.checked) {
+        const connectedIds = getConnectedComponent(node.id);
+        connectedIds.forEach(id => {
+          const n = state.nodes.find(item => item.id === id);
+          if (n) initialPositions.set(id, { x: n.x, y: n.y });
+        });
+      } else {
+        initialPositions.set(node.id, { x: node.x, y: node.y });
+      }
+
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+
+    // TIMELINE DRAG & RESIZE LISTENERS
+    timelineContainer.onmousedown = (e) => {
+      if (e.target === timelineResizeHandle) return; // handled separately
+      draggingTimeline = true;
+      dragOffset.x = e.clientX - state.timelinePos.x;
+      dragOffset.y = e.clientY - state.timelinePos.y;
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    timelineResizeHandle.onmousedown = (e) => {
+      e.stopPropagation();
+      resizingTimeline = true;
+      dragOffset.x = e.clientX;
+      dragOffset.initialWidth = state.timelinePos.width;
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    };
+
+    function handleMouseMove(e) {
+      if (resizingTimeline) {
+        const deltaX = e.clientX - dragOffset.x;
+        state.timelinePos.width = Math.max(300, dragOffset.initialWidth + deltaX);
+        render();
+        return;
+      }
+
+      if (draggingTimeline) {
+        state.timelinePos.x = e.clientX - dragOffset.x;
+        state.timelinePos.y = e.clientY - dragOffset.y;
+        render();
+        return;
+      }
+
+      if (!draggingNode) return;
+
+      const newX = e.clientX - dragOffset.x;
+      const newY = e.clientY - dragOffset.y;
+      const deltaX = newX - initialPositions.get(draggingNode.id).x;
+      const deltaY = newY - initialPositions.get(draggingNode.id).y;
+
+      initialPositions.forEach((initPos, id) => {
+        const n = state.nodes.find(item => item.id === id);
+        if (n) {
+          n.x = initPos.x + deltaX;
+          n.y = initPos.y + deltaY;
+        }
+      });
+
+      render();
+    }
+
+    function handleMouseUp() {
+      if (draggingNode || draggingTimeline || resizingTimeline) {
+        draggingNode = null;
+        draggingTimeline = false;
+        resizingTimeline = false;
+        window.removeEventListener('mousemove', handleMouseMove);
+        window.removeEventListener('mouseup', handleMouseUp);
+        saveState();
+      }
+    }
+
+    function getConnectedComponent(startId) {
+      const visited = new Set();
+      const queue = [startId];
+      visited.add(startId);
+
+      while (queue.length > 0) {
+        const curr = queue.shift();
+        state.lines.forEach(line => {
+          if (line.from === curr && !visited.has(line.to)) {
+            visited.add(line.to);
+            queue.push(line.to);
+          }
+          if (line.to === curr && !visited.has(line.from)) {
+            visited.add(line.from);
+            queue.push(line.from);
+          }
+        });
+      }
+      return visited;
+    }
+
+    function deleteNode(id) {
+      state.nodes = state.nodes.filter(n => n.id !== id);
+      state.lines = state.lines.filter(l => l.from !== id && l.to !== id);
+      if (selectedSourceNode && selectedSourceNode.id === id) selectedSourceNode = null;
+      saveState();
+      render();
+    }
+
+    // --- EVENTS & BUTTON HANDLERS ---
+    addBtn.onclick = createBox;
+
+    nodeTextInput.onkeydown = (e) => {
+      if (e.key === 'Enter') {
+        createBox();
+      }
+    };
+
+    showTimelineChk.onchange = (e) => {
+      state.showTimeline = e.target.checked;
+      saveState();
+      render();
+    };
+
+    exportBtn.onclick = () => {
+      let prefix = "diagram";
+      if (state.nodes.length > 0) {
+        const highestNode = state.nodes.reduce((min, n) => n.y < min.y ? n : min, state.nodes[0]);
+        if (highestNode && highestNode.text.trim()) {
+          prefix = highestNode.text.trim().replace(/[^a-z0-9_-]/gi, '_');
+        }
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const fileName = `${prefix}_diagram_${today}.json`;
+
+      const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    };
+
+    importBtn.onclick = () => importFileInput.click();
+    importFileInput.onchange = (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        try {
+          const importedState = JSON.parse(evt.target.result);
+          if (importedState.nodes && importedState.lines) {
+            state = {
+              nodes: importedState.nodes || [],
+              lines: importedState.lines || [],
+              showTimeline: importedState.showTimeline !== undefined ? importedState.showTimeline : true,
+              timelinePos: importedState.timelinePos || { x: 50, y: 50, width: 700 }
+            };
+            saveState();
+            render();
+          }
+        } catch (err) {
+          alert("Invalid JSON file structure.");
+        }
+      };
+      reader.readAsText(file);
+      importFileInput.value = '';
+    };
+
+    clearBtn.onclick = () => {
+      if (confirm("Clear all nodes and connections?")) {
+        state = { nodes: [], lines: [], showTimeline: state.showTimeline, timelinePos: state.timelinePos };
+        selectedSourceNode = null;
+        saveState();
+        render();
+      }
+    };
+
+    undoBtn.onclick = undo;
+    redoBtn.onclick = redo;
+
+    window.onkeydown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        if (e.shiftKey) redo();
+        else undo();
+      } else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') {
+        redo();
+      }
+    };
+
+    // --- INITIALIZATION ---
+    saveState();
+    render();
+  </script>
+</body>
+</html>

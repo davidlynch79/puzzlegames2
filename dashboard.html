@@ -4,51 +4,77 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#10201c">
-    <title>Your Puzzle Arcade</title>
+    <title>Your Data Tools &amp; Puzzle Games</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <main class="container member-portal">
-        <a class="text-link back-link" href="index.html">← Puzzle Arcade</a>
-
+        <a class="text-link back-link" href="index.html">&larr; Data Tools &amp; Puzzle Games</a>
         <section id="loading-state" class="portal-card status-card" aria-live="polite">
             <p class="eyebrow">MEMBER PORTAL</p>
-            <h1>Checking your membership…</h1>
-            <p>We’re verifying your active subscription.</p>
+            <h1>Checking your membership&hellip;</h1>
+            <p>We're verifying your active subscription.</p>
         </section>
-
         <section id="access-error" class="portal-card status-card hidden" role="alert">
             <p class="eyebrow">SIGN-IN REQUIRED</p>
-            <h1>We couldn’t verify your membership.</h1>
+            <h1>We couldn't verify your membership.</h1>
             <p>Your session may have expired. Sign in with the email used at checkout.</p>
             <a class="btn" href="index.html?login=required">Return to sign in</a>
         </section>
-
         <div id="dashboard-content" class="hidden">
             <header class="portal-header member-header">
                 <div>
                     <p class="eyebrow">MEMBER PORTAL</p>
-                    <h1>Your game library</h1>
-                    <p>Your subscription is active. Choose a game to continue.</p>
+                    <h1>Your library</h1>
+                    <p>Your subscription is active. Choose a data tool or a game to continue.</p>
                 </div>
                 <button id="logout-button" class="secondary-button" type="button">Sign out</button>
             </header>
 
-            <section aria-labelledby="games-title">
+            <section class="library-section" aria-labelledby="tools-title">
                 <div class="section-heading">
-                    <h2 id="games-title">Available games</h2>
+                    <h2 id="tools-title">Data tools</h2>
+                    <span id="tool-count" class="badge member-badge"></span>
+                </div>
+                <div id="tool-grid" class="game-grid"></div>
+            </section>
+
+            <section class="library-section" aria-labelledby="games-title">
+                <div class="section-heading">
+                    <h2 id="games-title">Puzzle games</h2>
                     <span id="game-count" class="badge member-badge"></span>
                 </div>
                 <div id="game-grid" class="game-grid"></div>
             </section>
         </div>
     </main>
-
     <script>
-        const games = [
-            { title: "Mastermind", subtitle: "Grand Ultimate Edition", href: "mastermind1.html", badge: "MEMBER GAME" },
-            { title: "Hexxagon", subtitle: "A free strategy game for everyone", href: "Hexxagon.html", badge: "FREE" }
+        const tools = [
+            { title: "TreeSheets", subtitle: "Turn records into a clean, explorable outline tree.", href: "treesheets.html", badge: "MEMBER TOOL", action: "Open tool" },
+            { title: "Concept Map", subtitle: "Diagram ideas, nodes, and timelines on a free-form canvas.", href: "conceptmap.html", badge: "MEMBER TOOL", action: "Open tool" }
         ];
+        const games = [
+            { title: "Mastermind", subtitle: "Grand Ultimate Edition", href: "mastermind1.html", badge: "MEMBER GAME", action: "Play game" },
+            { title: "Hexxagon", subtitle: "A free strategy game for everyone", href: "Hexxagon.html", badge: "FREE", action: "Play game" }
+        ];
+
+        function buildCard(item) {
+            const card = document.createElement("article");
+            card.className = "game-card";
+            const badge = document.createElement("span");
+            badge.className = `badge ${item.badge === "FREE" ? "free-badge" : "member-badge"}`;
+            badge.textContent = item.badge;
+            const title = document.createElement("h3");
+            title.textContent = item.title;
+            const subtitle = document.createElement("p");
+            subtitle.textContent = item.subtitle;
+            const link = document.createElement("a");
+            link.className = "btn";
+            link.href = item.href;
+            link.textContent = item.action;
+            card.append(badge, title, subtitle, link);
+            return card;
+        }
 
         async function checkAuthAndLoad() {
             const loading = document.querySelector("#loading-state");
@@ -61,25 +87,10 @@
                 });
                 const result = await response.json().catch(() => ({}));
                 if (!response.ok || !result.success) throw new Error("Membership not verified");
-
+                document.querySelector("#tool-count").textContent = `${tools.length} TOOLS`;
+                document.querySelector("#tool-grid").replaceChildren(...tools.map(buildCard));
                 document.querySelector("#game-count").textContent = `${games.length} GAMES`;
-                document.querySelector("#game-grid").replaceChildren(...games.map(game => {
-                    const card = document.createElement("article");
-                    card.className = "game-card";
-                    const badge = document.createElement("span");
-                    badge.className = `badge ${game.badge === "FREE" ? "free-badge" : "member-badge"}`;
-                    badge.textContent = game.badge;
-                    const title = document.createElement("h3");
-                    title.textContent = game.title;
-                    const subtitle = document.createElement("p");
-                    subtitle.textContent = game.subtitle;
-                    const link = document.createElement("a");
-                    link.className = "btn";
-                    link.href = game.href;
-                    link.textContent = "Play game";
-                    card.append(badge, title, subtitle, link);
-                    return card;
-                }));
+                document.querySelector("#game-grid").replaceChildren(...games.map(buildCard));
                 loading.classList.add("hidden");
                 document.querySelector("#dashboard-content").classList.remove("hidden");
             } catch {
@@ -87,12 +98,10 @@
                 error.classList.remove("hidden");
             }
         }
-
         document.querySelector("#logout-button").addEventListener("click", async () => {
             await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
             window.location.assign("index.html");
         });
-
         checkAuthAndLoad();
     </script>
 </body>

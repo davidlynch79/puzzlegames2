@@ -1,4 +1,4 @@
-body {
+﻿body {
     font-family: system-ui, -apple-system, sans-serif;
     background: radial-gradient(ellipse at 15% 0%, #173a35 0, #101b1d 42%, #101318 100%);
     color: #edf4f1;
@@ -60,3 +60,16 @@ body {
     .login-row { align-items: stretch; flex-direction: column; }
     .member-actions { align-items: flex-start; flex-direction: column; }
 }
+
+/* Data tools + puzzle games sections */
+.section-block { margin-bottom: 26px; }
+.section-block .portal-card { border-top: 3px solid #71d7b1; }
+.section-block .portal-grid { grid-template-columns: minmax(0, 1fr); }
+.section-heading h2 { margin: 0; }
+.portal-card h3 { margin: 12px 0 8px; color: #f1f5f3; font-size: 21px; }
+.portal-card h3 + p { margin-top: 0; }
+.tools-preview-card { display: flex; flex-direction: column; align-items: flex-start; }
+.tool-preview-list { margin: 4px 0 20px; padding-left: 20px; color: #b8c7c1; line-height: 1.6; }
+.tool-preview-list li { margin-bottom: 8px; }
+.tool-preview-list strong { color: #e6eeeb; }
+.library-section { margin-bottom: 40px; }

@@ -3,53 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Puzzle Arcade - All Access</title>
+    <title>Data Tools &amp; Puzzle Games - All Access</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <main class="container portal">
         <header class="portal-header">
-            <p class="eyebrow">PUZZLE ARCADE</p>
-            <h1>Play a round. Stay for the challenge.</h1>
-            <p>Jump into a free game, or sign in to open your member library.</p>
+            <p class="eyebrow">DATA TOOLS &amp; PUZZLE GAMES</p>
+            <h1>Work with data. Play a round. Both in one place.</h1>
+            <p>Grab a free puzzle game, or sign in to open the complete tool library.</p>
         </header>
 
-        <div class="portal-grid">
-            <section class="portal-card free-card" aria-labelledby="free-title">
-                <span class="badge free-badge">FREE TO PLAY</span>
-                <h2 id="free-title">Hexxagon</h2>
-                <p>Claim the board, outmaneuver your opponent, and flip their pieces to your side.</p>
-                <a class="btn" href="Hexxagon.html">Play Hexxagon</a>
-            </section>
+        <section class="section-block" aria-labelledby="free-games-title">
+            <div class="section-heading">
+                <h2 id="free-games-title">Free to play</h2>
+                <span class="badge free-badge">NO ACCOUNT NEEDED</span>
+            </div>
+            <div class="portal-grid">
+                <section class="portal-card free-card" aria-labelledby="free-title">
+                    <span class="badge free-badge">FREE TO PLAY</span>
+                    <h3 id="free-title">Hexxagon</h3>
+                    <p>Claim the board, outmaneuver your opponent, and flip their pieces to your side.</p>
+                    <a class="btn" href="Hexxagon.html">Play Hexxagon</a>
+                </section>
+            </div>
+        </section>
 
+        <div class="portal-grid">
             <section class="portal-card member-card" aria-labelledby="member-title">
                 <span class="badge member-badge">ALL-ACCESS MEMBERSHIP</span>
-                <h2 id="member-title">Your games, in one place</h2>
-
+                <h2 id="member-title">Your tools and games, in one place</h2>
                 <div id="session-checking" class="session-status" aria-live="polite">
                     <p>Checking your membership&hellip;</p>
                 </div>
-
                 <div id="session-active" class="hidden">
                     <p class="signed-in-note">You are signed in and your membership is active.</p>
                     <div class="member-actions">
-                        <a class="btn" href="dashboard.html">Open my game library</a>
+                        <a class="btn" href="dashboard.html">Open my library</a>
                         <button id="sign-out-button" class="secondary-button" type="button">Sign out</button>
                     </div>
                 </div>
-
                 <div id="sign-in-panel" class="hidden">
                     <p>After subscribing, sign in with the email address used at checkout to open the member portal.</p>
-
                     <form id="subscriber-login-form" class="login-form">
                         <label for="loginEmail">Subscriber email</label>
                         <div class="login-row">
                             <input type="email" id="loginEmail" name="email" placeholder="you@example.com" autocomplete="email" required>
-                            <button id="login-button" type="submit">Open my games</button>
+                            <button id="login-button" type="submit">Open my library</button>
                         </div>
                         <p id="login-message" class="form-message" role="status" aria-live="polite"></p>
                     </form>
-
                     <div class="member-actions">
                         <stripe-buy-button
                             buy-button-id="buy_btn_1UITUlLCcvc2qiulpSxwQYIB"
@@ -59,11 +62,22 @@
                     </div>
                 </div>
             </section>
+
+            <section class="portal-card member-card tools-preview-card" aria-labelledby="tools-title">
+                <span class="badge member-badge">MEMBER DATA TOOLS</span>
+                <h2 id="tools-title">Serious tools, unlocked</h2>
+                <p>Your membership opens the full data toolkit, not just the games.</p>
+                <ul class="tool-preview-list">
+                    <li><strong>TreeSheets</strong> &mdash; turn messy records into a clean, explorable outline tree.</li>
+                    <li><strong>Concept Map</strong> &mdash; diagram ideas, nodes, and timelines on a free-form canvas.</li>
+                    <li><strong>Mastermind</strong> &mdash; the Grand Ultimate deduction challenge.</li>
+                </ul>
+                <a class="btn" href="index.html?login=required">Unlock the toolkit</a>
+            </section>
         </div>
 
         <footer class="portal-footer">After checkout, return here and sign in with the same email address.</footer>
     </main>
-
     <script async src="https://js.stripe.com/v3/buy-button.js"></script>
     <script>
         const checkingPanel = document.querySelector("#session-checking");
@@ -74,22 +88,18 @@
         const loginMessage = document.querySelector("#login-message");
         const signOutButton = document.querySelector("#sign-out-button");
         const emailInput = document.querySelector("#loginEmail");
-
         const urlParams = new URLSearchParams(location.search);
-
         function showSignedIn() {
             checkingPanel.classList.add("hidden");
             signInPanel.classList.add("hidden");
             activePanel.classList.remove("hidden");
         }
-
         function showSignInForm(message) {
             checkingPanel.classList.add("hidden");
             activePanel.classList.add("hidden");
             signInPanel.classList.remove("hidden");
             loginMessage.textContent = message;
         }
-
         async function hasActiveSession() {
             const response = await fetch("/api/verify-auth", {
                 credentials: "same-origin",
@@ -98,7 +108,6 @@
             const result = await response.json().catch(() => ({}));
             return response.ok && result.success === true;
         }
-
         // The sign-in form stays hidden until we know there is no active session,
         // so an already signed-in visitor is never asked to sign in again.
         async function resolveSessionState() {
@@ -108,22 +117,18 @@
             } catch {
                 isSignedIn = false;
             }
-
             if (isSignedIn) {
                 showSignedIn();
                 return;
             }
-
             showSignInForm(urlParams.get("login") === "required"
                 ? "Your session expired. Sign in again with the email used at checkout."
                 : "");
         }
-
         loginForm.addEventListener("submit", async event => {
             event.preventDefault();
             loginMessage.textContent = "Checking your subscription…";
             loginButton.disabled = true;
-
             try {
                 const response = await fetch("/api/login", {
                     method: "POST",
@@ -132,7 +137,6 @@
                     body: JSON.stringify({ email: emailInput.value.trim() })
                 });
                 const result = await response.json().catch(() => ({}));
-
                 if (!response.ok || !result.success) {
                     if (result.code === "customer_not_found") {
                         loginMessage.textContent = "No Stripe account was found with that email. Use the exact email from checkout.";
@@ -143,7 +147,6 @@
                     }
                     return;
                 }
-
                 window.location.assign("dashboard.html");
             } catch {
                 loginMessage.textContent = "Connection problem. Check your internet and try again.";
@@ -151,12 +154,10 @@
                 loginButton.disabled = false;
             }
         });
-
         signOutButton.addEventListener("click", async () => {
             await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
             window.location.assign("index.html");
         });
-
         resolveSessionState();
     </script>
 </body>
