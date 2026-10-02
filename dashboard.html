@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -50,8 +50,8 @@
     </main>
     <script>
         const tools = [
-            { title: "TreeSheets", subtitle: "Turn records into a clean, explorable outline tree.", href: "treesheets.html", badge: "MEMBER TOOL", action: "Open tool" },
-            { title: "Concept Map", subtitle: "Diagram ideas, nodes, and timelines on a free-form canvas.", href: "conceptmap.html", badge: "MEMBER TOOL", action: "Open tool" }
+            { title: "TreeSheets", subtitle: "Turn records into a clean, explorable outline tree.", href: "/api/tool?tool=treesheets", badge: "MEMBER TOOL", action: "Open tool" },
+            { title: "Concept Map", subtitle: "Diagram ideas, nodes, and timelines on a free-form canvas.", href: "/api/tool?tool=conceptmap", badge: "MEMBER TOOL", action: "Open tool" }
         ];
         const games = [
             { title: "Mastermind", subtitle: "Grand Ultimate Edition", href: "mastermind1.html", badge: "MEMBER GAME", action: "Play game" },
@@ -71,6 +71,12 @@
             const link = document.createElement("a");
             link.className = "btn";
             link.href = item.href;
+            // Paid tools are served by a membership-checked endpoint, never a
+            // static file, so a right-click reveal never exposes the source.
+            if (item.href.startsWith("/api/)) {
+                link.rel = "noopener";
+                link.target = "_self";
+            }
             link.textContent = item.action;
             card.append(badge, title, subtitle, link);
             return card;
