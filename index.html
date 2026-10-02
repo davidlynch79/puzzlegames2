@@ -1,6 +1,3 @@
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,74 +7,157 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>🧩 Puzzle Arcade All-Access</h1>
+    <main class="container portal">
+        <header class="portal-header">
+            <p class="eyebrow">PUZZLE ARCADE</p>
+            <h1>Play a round. Stay for the challenge.</h1>
+            <p>Jump into a free game, or sign in to open your member library.</p>
+        </header>
 
-        <div class="login-section">
-    <h3>Subscriber Login</h3>
-    <input type="email" id="loginEmail" placeholder="Enter your subscriber email">
-    <button onclick="loginUser()">Log In & Play</button>
-    <p id="loginError" style="color: red;"></p>
-</div>
+        <div class="portal-grid">
+            <section class="portal-card free-card" aria-labelledby="free-title">
+                <span class="badge free-badge">FREE TO PLAY</span>
+                <h2 id="free-title">Hexxagon</h2>
+                <p>Claim the board, outmaneuver your opponent, and flip their pieces to your side.</p>
+                <a class="btn" href="Hexxagon.html">Play Hexxagon</a>
+            </section>
 
-<script>
-    async function loginUser() {
-        const email = document.getElementById('loginEmail').value;
-        const errorEl = document.getElementById('loginError');
-        errorEl.innerText = "Logging in...";
+            <section class="portal-card member-card" aria-labelledby="member-title">
+                <span class="badge member-badge">ALL-ACCESS MEMBERSHIP</span>
+                <h2 id="member-title">Your games, in one place</h2>
 
-        try {
-            const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email })
-            });
+                <div id="session-checking" class="session-status" aria-live="polite">
+                    <p>Checking your membership&hellip;</p>
+                </div>
 
-            const data = await response.json();
-            
-            if (data.success) {
-                window.location.href = 'mastermind1.html'; // Redirect to games
-            } else {
-                errorEl.innerText = "Error: " + (data.error || 'Login failed');
-            }
-        } catch (err) {
-            errorEl.innerText = "Network or server error occurred.";
-        }
-    }
-</script>
+                <div id="session-active" class="hidden">
+                    <p class="signed-in-note">You are signed in and your membership is active.</p>
+                    <div class="member-actions">
+                        <a class="btn" href="dashboard.html">Open my game library</a>
+                        <button id="sign-out-button" class="secondary-button" type="button">Sign out</button>
+                    </div>
+                </div>
 
-<p>Already have a subscription?</p>
-<a href="https://billing.stripe.com/p/login/28E3cw71z3cw5Sg8qj3gk00" class="login-btn">Subscriber Login</a>
+                <div id="sign-in-panel" class="hidden">
+                    <p>After subscribing, sign in with the email address used at checkout to open the member portal.</p>
 
-        
-        <p>Subscribe for unlimited access to all arcade games!</p>
-        
-        <!-- Game Selection Preview Links (Will redirect if not subscribed) -->
-        <div class="game-links">
-            <a href="mastermind1.html" class="game-btn">Play Mastermind</a>
-            <a href="Hexxagon.html" class="game-btn">Play Hexxagon</a>
+                    <form id="subscriber-login-form" class="login-form">
+                        <label for="loginEmail">Subscriber email</label>
+                        <div class="login-row">
+                            <input type="email" id="loginEmail" name="email" placeholder="you@example.com" autocomplete="email" required>
+                            <button id="login-button" type="submit">Open my games</button>
+                        </div>
+                        <p id="login-message" class="form-message" role="status" aria-live="polite"></p>
+                    </form>
 
-
-
-<script async
-  src="https://js.stripe.com/v3/buy-button.js">
-</script>
-
-<stripe-buy-button
-  buy-button-id="buy_btn_1UITUlLCcvc2qiulpSxwQYIB"
-  publishable-key="pk_live_51UIT0sLCcvc2qiulOreqiRcL78bdVWq6oNmJTnScSKjyuL7FnmB02heVtQpaKclNZ60PQn8JMI2jaORn4S1M3ueo00wzynb5oI"
->
-</stripe-buy-button>
-
-
-
-
-
+                    <div class="member-actions">
+                        <stripe-buy-button
+                            buy-button-id="buy_btn_1UITUlLCcvc2qiulpSxwQYIB"
+                            publishable-key="pk_live_51UIT0sLCcvc2qiulOreqiRcL78bdVWq6oNmJTnScSKjyuL7FnmB02heVtQpaKclNZ60PQn8JMI2jaORn4S1M3ueo00wzynb5oI">
+                        </stripe-buy-button>
+                        <a class="text-link" href="https://billing.stripe.com/p/login/28E3cw71z3cw5Sg8qj3gk00">Manage an existing subscription</a>
+                    </div>
+                </div>
+            </section>
         </div>
 
-        <hr style="margin: 2rem 0; border: 0; border-top: 1px solid #334155;">
+        <footer class="portal-footer">After checkout, return here and sign in with the same email address.</footer>
+    </main>
 
+    <script async src="https://js.stripe.com/v3/buy-button.js"></script>
+    <script>
+        const checkingPanel = document.querySelector("#session-checking");
+        const activePanel = document.querySelector("#session-active");
+        const signInPanel = document.querySelector("#sign-in-panel");
+        const loginForm = document.querySelector("#subscriber-login-form");
+        const loginButton = document.querySelector("#login-button");
+        const loginMessage = document.querySelector("#login-message");
+        const signOutButton = document.querySelector("#sign-out-button");
+        const emailInput = document.querySelector("#loginEmail");
 
-    </div>
+        const urlParams = new URLSearchParams(location.search);
+
+        function showSignedIn() {
+            checkingPanel.classList.add("hidden");
+            signInPanel.classList.add("hidden");
+            activePanel.classList.remove("hidden");
+        }
+
+        function showSignInForm(message) {
+            checkingPanel.classList.add("hidden");
+            activePanel.classList.add("hidden");
+            signInPanel.classList.remove("hidden");
+            loginMessage.textContent = message;
+        }
+
+        async function hasActiveSession() {
+            const response = await fetch("/api/verify-auth", {
+                credentials: "same-origin",
+                cache: "no-store"
+            });
+            const result = await response.json().catch(() => ({}));
+            return response.ok && result.success === true;
+        }
+
+        // The sign-in form stays hidden until we know there is no active session,
+        // so an already signed-in visitor is never asked to sign in again.
+        async function resolveSessionState() {
+            let isSignedIn = false;
+            try {
+                isSignedIn = await hasActiveSession();
+            } catch {
+                isSignedIn = false;
+            }
+
+            if (isSignedIn) {
+                showSignedIn();
+                return;
+            }
+
+            showSignInForm(urlParams.get("login") === "required"
+                ? "Your session expired. Sign in again with the email used at checkout."
+                : "");
+        }
+
+        loginForm.addEventListener("submit", async event => {
+            event.preventDefault();
+            loginMessage.textContent = "Checking your subscription…";
+            loginButton.disabled = true;
+
+            try {
+                const response = await fetch("/api/login", {
+                    method: "POST",
+                    credentials: "same-origin",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ email: emailInput.value.trim() })
+                });
+                const result = await response.json().catch(() => ({}));
+
+                if (!response.ok || !result.success) {
+                    if (result.code === "customer_not_found") {
+                        loginMessage.textContent = "No Stripe account was found with that email. Use the exact email from checkout.";
+                    } else if (result.code === "no_active_subscription") {
+                        loginMessage.textContent = "We found that account, but its subscription is not active. Check your subscription status.";
+                    } else {
+                        loginMessage.textContent = result.error || "We couldn't sign you in right now. Please try again.";
+                    }
+                    return;
+                }
+
+                window.location.assign("dashboard.html");
+            } catch {
+                loginMessage.textContent = "Connection problem. Check your internet and try again.";
+            } finally {
+                loginButton.disabled = false;
+            }
+        });
+
+        signOutButton.addEventListener("click", async () => {
+            await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+            window.location.assign("index.html");
+        });
+
+        resolveSessionState();
+    </script>
 </body>
 </html>

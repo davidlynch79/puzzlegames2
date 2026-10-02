@@ -3,84 +3,96 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Member Game Dashboard</title>
-    <style>
-        body { font-family: sans-serif; background: #121212; color: #f0f0f0; padding: 2rem; max-width: 800px; margin: 0 auto; }
-        .game-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-top: 2rem; }
-        .game-card { background: #1e1e1e; padding: 1.5rem; border-radius: 8px; border: 1px solid #333; text-align: center; }
-        .game-card a { color: #4CAF50; text-decoration: none; font-weight: bold; display: block; margin-top: 1rem; }
-        .game-card a:hover { text-decoration: underline; }
-        #loading { text-align: center; font-size: 1.2rem; margin-top: 4rem; }
-        .hidden { display: none !important; }
-    </style>
+    <meta name="theme-color" content="#10201c">
+    <title>Your Puzzle Arcade</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
+    <main class="container member-portal">
+        <a class="text-link back-link" href="index.html">← Puzzle Arcade</a>
 
-    <div id="loading">Verifying your subscription and session...</div>
+        <section id="loading-state" class="portal-card status-card" aria-live="polite">
+            <p class="eyebrow">MEMBER PORTAL</p>
+            <h1>Checking your membership…</h1>
+            <p>We’re verifying your active subscription.</p>
+        </section>
 
-    <div id="dashboard-content" class="hidden">
-        <h1>Welcome Back, Subscriber!</h1>
-        <p>You have full access to all puzzle games and features.</p>
-        
-        <div class="game-grid">
-            <div class="game-card">
-                <h3>Mastermind</h3>
-                <p>Grand Ultimate Edition</p>
-                <a href="mastermind.html">Play Game</a>
-            </div>
-            <div class="game-card">
-                <h3>Hexxagon</h3>
-                <p>Strategy Board Game</p>
-                <a href="hexxagon.html">Play Game</a>
-            </div>
+        <section id="access-error" class="portal-card status-card hidden" role="alert">
+            <p class="eyebrow">SIGN-IN REQUIRED</p>
+            <h1>We couldn’t verify your membership.</h1>
+            <p>Your session may have expired. Sign in with the email used at checkout.</p>
+            <a class="btn" href="index.html?login=required">Return to sign in</a>
+        </section>
+
+        <div id="dashboard-content" class="hidden">
+            <header class="portal-header member-header">
+                <div>
+                    <p class="eyebrow">MEMBER PORTAL</p>
+                    <h1>Your game library</h1>
+                    <p>Your subscription is active. Choose a game to continue.</p>
+                </div>
+                <button id="logout-button" class="secondary-button" type="button">Sign out</button>
+            </header>
+
+            <section aria-labelledby="games-title">
+                <div class="section-heading">
+                    <h2 id="games-title">Available games</h2>
+                    <span id="game-count" class="badge member-badge"></span>
+                </div>
+                <div id="game-grid" class="game-grid"></div>
+            </section>
         </div>
-    </div>
+    </main>
 
     <script>
-        // Simple helper to read a specific cookie by name
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
+        const games = [
+            { title: "Mastermind", subtitle: "Grand Ultimate Edition", href: "mastermind1.html", badge: "MEMBER GAME" },
+            { title: "Hexxagon", subtitle: "A free strategy game for everyone", href: "Hexxagon.html", badge: "FREE" }
+        ];
 
         async function checkAuthAndLoad() {
-            // Check if JWT token exists in cookies or localStorage
-            const token = getCookie('auth_token') || localStorage.getItem('auth_token');
-
-            if (!token) {
-                // No token found, redirect to login/payment page
-                window.location.href = '/login.html'; 
-                return;
-            }
-
+            const loading = document.querySelector("#loading-state");
+            const error = document.querySelector("#access-error");
             try {
-                // Optional: Validate the token against a backend Vercel serverless function
-                const response = await fetch('/api/verify-session', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    }
+                const response = await fetch("/api/verify-auth", {
+                    method: "GET",
+                    credentials: "same-origin",
+                    cache: "no-store"
                 });
+                const result = await response.json().catch(() => ({}));
+                if (!response.ok || !result.success) throw new Error("Membership not verified");
 
-                if (!response.ok) {
-                    throw new Error('Session invalid or expired');
-                }
-
-                // If valid, reveal the dashboard content
-                document.getElementById('loading').classList.add('hidden');
-                document.getElementById('dashboard-content').classList.remove('hidden');
-
-            } catch (error) {
-                console.error('Authentication check failed:', error);
-                // Clear bad token and redirect
-                localStorage.removeItem('auth_token');
-                window.location.href = '/login.html';
+                document.querySelector("#game-count").textContent = `${games.length} GAMES`;
+                document.querySelector("#game-grid").replaceChildren(...games.map(game => {
+                    const card = document.createElement("article");
+                    card.className = "game-card";
+                    const badge = document.createElement("span");
+                    badge.className = `badge ${game.badge === "FREE" ? "free-badge" : "member-badge"}`;
+                    badge.textContent = game.badge;
+                    const title = document.createElement("h3");
+                    title.textContent = game.title;
+                    const subtitle = document.createElement("p");
+                    subtitle.textContent = game.subtitle;
+                    const link = document.createElement("a");
+                    link.className = "btn";
+                    link.href = game.href;
+                    link.textContent = "Play game";
+                    card.append(badge, title, subtitle, link);
+                    return card;
+                }));
+                loading.classList.add("hidden");
+                document.querySelector("#dashboard-content").classList.remove("hidden");
+            } catch {
+                loading.classList.add("hidden");
+                error.classList.remove("hidden");
             }
         }
 
-        // Run check on page load
+        document.querySelector("#logout-button").addEventListener("click", async () => {
+            await fetch("/api/logout", { method: "POST", credentials: "same-origin" }).catch(() => {});
+            window.location.assign("index.html");
+        });
+
         checkAuthAndLoad();
     </script>
 </body>

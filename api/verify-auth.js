@@ -2,13 +2,18 @@ const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 
 module.exports = async (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    if (!['GET', 'POST'].includes(req.method)) {
+        return res.status(405).json({ success: false, error: 'Method not allowed' });
+    }
+
     try {
         const cookieHeader = req.headers.cookie || '';
-        // Added .trim() to prevent whitespace bugs when reading cookies
-        const cookies = Object.fromEntries(
-            cookieHeader.split(';').map(c => c.trim().split('='))
-        );
-        const token = cookies.arcade_token;
+        const token = cookieHeader
+            .split(';')
+            .map(cookie => cookie.trim())
+            .find(cookie => cookie.startsWith('arcade_token='))
+            ?.slice('arcade_token='.length);
 
         if (!token) {
             return res.status(403).json({ success: false, error: 'Not logged in' });

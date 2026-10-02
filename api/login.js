@@ -1,4 +1,3 @@
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 const jwt = require('jsonwebtoken');
 
 module.exports = async (req, res) => {
@@ -13,7 +12,7 @@ module.exports = async (req, res) => {
             body = JSON.parse(body);
         }
 
-        const email = body?.email;
+        const email = typeof body?.email === 'string' ? body.email.trim() : '';
         if (!email) {
             return res.status(400).json({ success: false, error: 'Email is required' });
         }
@@ -26,37 +25,71 @@ module.exports = async (req, res) => {
             return res.status(500).json({ success: false, error: 'Missing STRIPE_SECRET_KEY in Vercel settings' });
         }
 
-        // 1. Find customer in Stripe by email
-        const customers = await stripe.customers.list({ email: email, limit: 1 });
-        if (customers.data.length === 0) {
-            return res.status(403).json({ success: false, error: 'No subscriber found with this email' });
+        const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+        const normalizedEmail = email.toLowerCase();
+        const customerRecords = new Map();
+
+        for (const emailQuery of new Set([email, normalizedEmail])) {
+            let startingAfter;
+            let hasMore = true;
+
+            while (hasMore) {
+                const params = { email: emailQuery, limit: 100 };
+                if (startingAfter) params.starting_after = startingAfter;
+                const page = await stripe.customers.list(params);
+
+                for (const customer of page.data) {
+                    if (customer.email?.trim().toLowerCase() === normalizedEmail) {
+                        customerRecords.set(customer.id, customer);
+                    }
+                }
+
+                hasMore = page.has_more;
+                startingAfter = hasMore ? page.data[page.data.length - 1]?.id : undefined;
+                if (hasMore && !startingAfter) break;
+            }
         }
 
-        const customerId = customers.data[0].id;
+        if (customerRecords.size === 0) {
+            return res.status(403).json({
+                success: false,
+                code: 'customer_not_found',
+                error: 'No subscriber found with this email'
+            });
+        }
 
-        // 2. Check if they have an active subscription
-        const subscriptions = await stripe.subscriptions.list({
-            customer: customerId,
-            status: 'active',
-            limit: 1
-        });
+        let customerId;
+        for (const customer of customerRecords.values()) {
+            const subscriptions = await stripe.subscriptions.list({
+                customer: customer.id,
+                status: 'active',
+                limit: 1
+            });
+            if (subscriptions.data.length > 0) {
+                customerId = customer.id;
+                break;
+            }
+        }
 
-        if (subscriptions.data.length === 0) {
-            return res.status(403).json({ success: false, error: 'Subscription is not active' });
+        if (!customerId) {
+            return res.status(403).json({
+                success: false,
+                code: 'no_active_subscription',
+                error: 'No active subscription was found for this email'
+            });
         }
 
         // 3. Create a signed token
         const token = jwt.sign({ customerId }, process.env.JWT_SECRET, { expiresIn: '7d' });
 
-        // 4. Set cookie (Note: Secure flag requires HTTPS. If testing locally on http://, remove '; Secure')
-        const cookieFlags = process.env.NODE_ENV === 'development' 
-            ? `arcade_token=${token}; HttpOnly; Path=/; Max-Age=604800; SameSite=Lax`
-            : `arcade_token=${token}; HttpOnly; Secure; Path=/; Max-Age=604800; SameSite=Lax`;
+        const secure = process.env.NODE_ENV === 'development' ? '' : ' Secure;';
+        const cookieFlags = `arcade_token=${token}; HttpOnly;${secure} Path=/; Max-Age=604800; SameSite=Lax`;
 
         res.setHeader('Set-Cookie', cookieFlags);
 
         return res.status(200).json({ success: true });
     } catch (error) {
-        return res.status(500).json({ success: false, error: error.message || 'Server error' });
+        console.error('Subscriber login failed:', error);
+        return res.status(500).json({ success: false, error: 'We could not verify your subscription. Please try again.' });
     }
 };
