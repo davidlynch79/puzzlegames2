@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -71,12 +71,6 @@
             const link = document.createElement("a");
             link.className = "btn";
             link.href = item.href;
-            // Paid tools are served by a membership-checked endpoint, never a
-            // static file, so a right-click reveal never exposes the source.
-            if (item.href.startsWith("/api/)) {
-                link.rel = "noopener";
-                link.target = "_self";
-            }
             link.textContent = item.action;
             card.append(badge, title, subtitle, link);
             return card;
